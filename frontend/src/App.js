@@ -513,6 +513,8 @@ function App() {
   const [error, setError] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showImageManager, setShowImageManager] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   const initializeData = async () => {
