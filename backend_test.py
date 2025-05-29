@@ -3,6 +3,7 @@ import requests
 import sys
 import os
 import json
+import uuid
 from datetime import datetime
 
 class StorageAPITester:
@@ -10,6 +11,8 @@ class StorageAPITester:
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
+        self.created_customer_id = None
+        self.created_location_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None):
         """Run a single API test"""
