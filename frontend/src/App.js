@@ -1108,9 +1108,12 @@ function App() {
       )}
 
       {/* Admin Controls */}
-      <div className="admin-controls">
+      <div className="admin-controls" style={{top: currentBanner ? '60px' : '20px'}}>
         <button 
-          onClick={toggleAdminMode}
+          onClick={() => {
+            console.log('Admin toggle clicked, current adminMode:', adminMode);
+            setAdminMode(!adminMode);
+          }}
           className={`admin-toggle ${adminMode ? 'active' : ''}`}
         >
           {adminMode ? '👨‍💼 Admin Mode ON' : '👤 User Mode'}
@@ -1118,7 +1121,10 @@ function App() {
         {adminMode && (
           <>
             <button 
-              onClick={() => setShowAdminPortal(true)}
+              onClick={() => {
+                console.log('Admin portal button clicked');
+                setShowAdminPortal(true);
+              }}
               className="admin-portal-btn"
             >
               🏢 Admin Portal
