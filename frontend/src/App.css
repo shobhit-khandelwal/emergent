@@ -1074,6 +1074,246 @@ body {
   transform: scale(1.1);
 }
 
+/* Integrations Tab */
+.integrations-tab h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.integration-status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.status-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.status-card.connected {
+  border-color: #28a745;
+  background: #e8f5e8;
+}
+
+.status-card.disconnected {
+  border-color: #dc3545;
+  background: #ffebee;
+}
+
+.status-card h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.status-card .status {
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.status-card.connected .status {
+  color: #28a745;
+}
+
+.status-card.disconnected .status {
+  color: #dc3545;
+}
+
+.test-badge {
+  background: #ffc107;
+  color: #856404;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detail {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+.api-key-management {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.api-key-management h4,
+.api-key-management h5 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.add-api-key {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  border: 1px solid #e9ecef;
+}
+
+.api-key-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.api-key-form select,
+.api-key-form input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.save-api-key-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.existing-keys {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  border: 1px solid #e9ecef;
+}
+
+.keys-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.key-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.key-info {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.service-badge {
+  background: #667eea;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.key-name {
+  font-weight: 500;
+  color: #555;
+}
+
+.key-value {
+  font-family: monospace;
+  background: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.env-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.env-badge.test {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.env-badge.production {
+  background: #d4edda;
+  color: #155724;
+}
+
+.delete-key-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-keys {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+}
+
+.setup-instructions {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.instructions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.instruction-card {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.instruction-card h6 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.instruction-card ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.instruction-card li {
+  margin-bottom: 8px;
+  color: #555;
+  font-size: 0.9rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .promo-banner {
