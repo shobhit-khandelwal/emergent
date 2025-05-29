@@ -611,6 +611,137 @@ async def initialize_sample_data():
     await db.virtual_units.delete_many({})
     await db.bookings.delete_many({})
     await db.image_assets.delete_many({})
+    await db.content_blocks.delete_many({})
+    await db.promo_banners.delete_many({})
+    await db.funnel_events.delete_many({})
+    
+    # Create sample content blocks
+    content_blocks = [
+        ContentBlock(
+            key="hero_title",
+            content="Premium RV & Boat Storage",
+            section="hero",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="hero_subtitle", 
+            content="Secure, flexible storage solutions with multiple booking options",
+            section="hero",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="feature_1_title",
+            content="Secure & Safe",
+            section="features",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="feature_1_description",
+            content="24/7 security monitoring and controlled access",
+            section="features",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="feature_2_title",
+            content="Flexible Booking",
+            section="features", 
+            content_type="text"
+        ),
+        ContentBlock(
+            key="feature_2_description",
+            content="Pay now or later, move in when convenient",
+            section="features",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="feature_3_title",
+            content="Multiple Sizes",
+            section="features",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="feature_3_description",
+            content="From small boats to large RVs, we have space for everything",
+            section="features",
+            content_type="text"
+        ),
+        ContentBlock(
+            key="results_header_title",
+            content="Available Storage Units",
+            section="units",
+            content_type="text"
+        )
+    ]
+    
+    for content in content_blocks:
+        await db.content_blocks.insert_one(content.dict())
+    
+    # Create sample promotional banners
+    promo_banners = [
+        PromoBanner(
+            title="Welcome to Premium Storage!",
+            message="Browse our secure storage options and find the perfect space for your RV or boat.",
+            cta_text="Explore Units",
+            cta_url="#units",
+            banner_type="info",
+            funnel_stages=["visitor"],
+            background_color="#e3f2fd",
+            text_color="#1565c0"
+        ),
+        PromoBanner(
+            title="🔍 Great Choice!",
+            message="You're looking at quality storage options. Need help choosing? Our team is here to assist!",
+            cta_text="Contact Us",
+            cta_url="#contact",
+            banner_type="promotional",
+            funnel_stages=["viewing_units", "filtering"],
+            background_color="#f3e5f5",
+            text_color="#7b1fa2"
+        ),
+        PromoBanner(
+            title="⚡ Almost There!",
+            message="Complete your booking now and secure your storage space. Limited availability!",
+            cta_text="Finish Booking",
+            cta_url="#",
+            banner_type="warning",
+            funnel_stages=["booking_started"],
+            background_color="#fff3e0",
+            text_color="#ef6c00"
+        ),
+        PromoBanner(
+            title="💔 Don't Miss Out!",
+            message="You were so close! Come back and complete your booking. Your space is still available.",
+            cta_text="Complete Booking",
+            cta_url="#",
+            banner_type="warning",
+            funnel_stages=["booking_abandoned"],
+            background_color="#ffebee",
+            text_color="#c62828"
+        ),
+        PromoBanner(
+            title="🎉 Thank You!",
+            message="Your booking is confirmed! Check your email for details. Need to modify your booking?",
+            cta_text="Manage Booking",
+            cta_url="#bookings",
+            banner_type="success",
+            funnel_stages=["booking_completed"],
+            background_color="#e8f5e8",
+            text_color="#2e7d32"
+        ),
+        PromoBanner(
+            title="👋 Welcome Back!",
+            message="Ready to book another space? We have new units available with special discounts for returning customers.",
+            cta_text="View New Units",
+            cta_url="#units",
+            banner_type="promotional",
+            funnel_stages=["returning_visitor"],
+            background_color="#e1f5fe",
+            text_color="#0277bd"
+        )
+    ]
+    
+    for banner in promo_banners:
+        await db.promo_banners.insert_one(banner.dict())
     
     # Create sample image assets
     image_assets = [
