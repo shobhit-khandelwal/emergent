@@ -66,6 +66,8 @@ const AdminPortal = ({ isOpen, onClose }) => {
   const [analytics, setAnalytics] = useState({});
   const [content, setContent] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [integrationStatus, setIntegrationStatus] = useState({});
+  const [apiKeys, setApiKeys] = useState([]);
   const [editingContent, setEditingContent] = useState(null);
   const [editingBanner, setEditingBanner] = useState(null);
   const [newBanner, setNewBanner] = useState({
@@ -77,6 +79,12 @@ const AdminPortal = ({ isOpen, onClose }) => {
     funnel_stages: [],
     background_color: '#667eea',
     text_color: '#ffffff'
+  });
+  const [newApiKey, setNewApiKey] = useState({
+    service: 'stripe',
+    key_name: 'secret_key',
+    key_value: '',
+    environment: 'test'
   });
 
   const fetchAnalytics = async () => {
