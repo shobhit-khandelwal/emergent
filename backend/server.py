@@ -1600,6 +1600,181 @@ async def initialize_sample_data():
     await db.funnel_events.delete_many({})
     await db.api_keys.delete_many({})
     await db.payment_transactions.delete_many({})
+    await db.customers.delete_many({})
+    await db.locations.delete_many({})
+    await db.loyalty_transactions.delete_many({})
+    await db.referrals.delete_many({})
+    await db.brand_settings.delete_many({})
+    await db.push_subscriptions.delete_many({})
+    
+    # Create sample locations
+    locations = [
+        Location(
+            name="Downtown Storage Center",
+            address="123 Main Street",
+            city="Springfield",
+            state="IL",
+            zip_code="62701",
+            phone="(555) 123-4567",
+            email="downtown@premiumstorage.com",
+            manager_name="Sarah Johnson",
+            hours_of_operation={
+                "monday": "6AM-10PM",
+                "tuesday": "6AM-10PM", 
+                "wednesday": "6AM-10PM",
+                "thursday": "6AM-10PM",
+                "friday": "6AM-10PM",
+                "saturday": "7AM-9PM",
+                "sunday": "8AM-8PM"
+            },
+            amenities=["24/7_access", "security_cameras", "gated", "climate_control"],
+            description="Our flagship downtown location with premium amenities",
+            gate_access_code="1234#"
+        ),
+        Location(
+            name="Riverside Marina Storage",
+            address="456 Waterfront Drive", 
+            city="Springfield",
+            state="IL",
+            zip_code="62702",
+            phone="(555) 234-5678",
+            email="riverside@premiumstorage.com",
+            manager_name="Mike Thompson",
+            hours_of_operation={
+                "monday": "7AM-9PM",
+                "tuesday": "7AM-9PM",
+                "wednesday": "7AM-9PM", 
+                "thursday": "7AM-9PM",
+                "friday": "7AM-10PM",
+                "saturday": "6AM-10PM",
+                "sunday": "7AM-9PM"
+            },
+            amenities=["boat_launch", "power_washing", "security", "covered_parking"],
+            description="Waterfront location perfect for boat storage with launch access"
+        )
+    ]
+    
+    for location in locations:
+        await db.locations.insert_one(location.dict())
+    
+    # Create sample customers
+    customers = [
+        Customer(
+            email="john.doe@email.com",
+            phone="(555) 123-0001",
+            first_name="John",
+            last_name="Doe",
+            customer_type="individual",
+            acquisition_source="web",
+            loyalty_points=750,
+            loyalty_tier="silver",
+            total_bookings=2,
+            lifetime_value=450.0,
+            referral_code="REFJOHO892E4A"
+        ),
+        Customer(
+            email="sarah.wilson@email.com", 
+            phone="(555) 123-0002",
+            first_name="Sarah",
+            last_name="Wilson",
+            company="Wilson Boat Rentals",
+            customer_type="business",
+            acquisition_source="referral",
+            loyalty_points=2100,
+            loyalty_tier="gold",
+            total_bookings=5,
+            lifetime_value=1250.0,
+            referral_code="REFSAWI7F8B2C"
+        ),
+        Customer(
+            email="mike.brown@email.com",
+            phone="(555) 123-0003", 
+            first_name="Mike",
+            last_name="Brown",
+            customer_type="individual",
+            acquisition_source="ads",
+            loyalty_points=150,
+            loyalty_tier="bronze",
+            total_bookings=1,
+            lifetime_value=200.0,
+            referral_code="REFMIBR3D9E1F"
+        )
+    ]
+    
+    for customer in customers:
+        await db.customers.insert_one(customer.dict())
+    
+    # Create sample loyalty transactions
+    loyalty_transactions = [
+        LoyaltyTransaction(
+            customer_id=customers[0].id,
+            transaction_type="earned",
+            points=250,
+            description="New customer bonus"
+        ),
+        LoyaltyTransaction(
+            customer_id=customers[0].id,
+            transaction_type="earned", 
+            points=500,
+            description="Booking completed - Premium RV Storage"
+        ),
+        LoyaltyTransaction(
+            customer_id=customers[1].id,
+            transaction_type="earned",
+            points=1000,
+            description="Business customer bonus"
+        ),
+        LoyaltyTransaction(
+            customer_id=customers[1].id,
+            transaction_type="earned",
+            points=1100,
+            description="Multiple bookings bonus"
+        )
+    ]
+    
+    for transaction in loyalty_transactions:
+        await db.loyalty_transactions.insert_one(transaction.dict())
+    
+    # Create sample referrals
+    referrals = [
+        Referral(
+            referrer_id=customers[0].id,
+            referred_email="friend1@email.com",
+            status="pending",
+            referrer_reward=500,
+            referred_reward=250
+        ),
+        Referral(
+            referrer_id=customers[1].id,
+            referred_email="business.partner@email.com", 
+            status="completed",
+            referrer_reward=500,
+            referred_reward=250,
+            completed_at=datetime.utcnow()
+        )
+    ]
+    
+    for referral in referrals:
+        await db.referrals.insert_one(referral.dict())
+    
+    # Create default brand settings
+    brand_settings = BrandSettings(
+        location_id=None,  # Global settings
+        company_name="Premium RV & Boat Storage",
+        primary_color="#667eea",
+        secondary_color="#764ba2", 
+        accent_color="#28a745",
+        hero_title="Premium RV & Boat Storage",
+        hero_subtitle="Secure, flexible storage solutions with loyalty rewards",
+        contact_phone="(555) 123-4567",
+        contact_email="info@premiumstorage.com",
+        social_media={
+            "facebook": "https://facebook.com/premiumstorage",
+            "instagram": "https://instagram.com/premiumstorage"
+        }
+    )
+    
+    await db.brand_settings.insert_one(brand_settings.dict())
     
     # Create sample content blocks
     content_blocks = [
