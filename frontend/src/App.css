@@ -1047,27 +1047,34 @@ body {
 
 /* Change Image Button on Unit Cards */
 .change-image-btn {
-
-.admin-toggle {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0,0,0,0.7);
   color: white;
   border: none;
-  padding: 10px 15px;
-  border-radius: 20px;
-  font-weight: 600;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
 }
 
-.admin-toggle.active {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+.unit-card:hover .change-image-btn {
+  opacity: 1;
 }
 
-.image-manager-btn {
-  background: #28a745;
-  color: white;
+.change-image-btn:hover {
+  background: rgba(0,0,0,0.9);
+  transform: scale(1.1);
+}
+
+/* Responsive Design */
   border: none;
   padding: 10px 15px;
   border-radius: 20px;
