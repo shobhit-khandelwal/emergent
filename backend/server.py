@@ -11,6 +11,256 @@ import uuid
 from datetime import datetime, timedelta
 from enum import Enum
 
+import os
+import logging
+from pathlib import Path
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
+import uuid
+from datetime import datetime, timedelta
+from enum import Enum
+
+# Integration services
+import stripe
+from twilio.rest import Client as TwilioClient
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content
+from jinja2 import Template
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+# Integration Services
+class StripeService:
+    def __init__(self, api_key: str = None):
+        if api_key:
+            stripe.api_key = api_key
+    
+    def create_checkout_session(self, amount: float, currency: str = "usd", 
+                              success_url: str = "", cancel_url: str = "", 
+                              metadata: dict = None):
+        try:
+            if not stripe.api_key:
+                return {"success": False, "error": "Stripe API key not configured"}
+            
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': currency,
+                        'product_data': {
+                            'name': 'Storage Unit Booking',
+                        },
+                        'unit_amount': int(amount * 100),  # Convert to cents
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=success_url + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=cancel_url,
+                metadata=metadata or {}
+            )
+            return {
+                "success": True,
+                "session_id": session.id,
+                "url": session.url
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def get_payment_status(self, session_id: str):
+        try:
+            if not stripe.api_key:
+                return {"success": False, "error": "Stripe API key not configured"}
+                
+            session = stripe.checkout.Session.retrieve(session_id)
+            return {
+                "success": True,
+                "status": session.status,
+                "payment_status": session.payment_status,
+                "amount_total": session.amount_total,
+                "currency": session.currency,
+                "metadata": session.metadata
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+class TwilioService:
+    def __init__(self, account_sid: str = None, auth_token: str = None, from_number: str = None):
+        if account_sid and auth_token:
+            self.client = TwilioClient(account_sid, auth_token)
+            self.from_number = from_number
+        else:
+            self.client = None
+    
+    def send_sms(self, to_number: str, message: str):
+        try:
+            if not self.client:
+                return {"success": False, "error": "Twilio not configured"}
+            
+            message = self.client.messages.create(
+                body=message,
+                from_=self.from_number,
+                to=to_number
+            )
+            return {
+                "success": True,
+                "message_sid": message.sid,
+                "status": message.status
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+class EmailService:
+    def __init__(self, api_key: str = None, from_email: str = None):
+        if api_key:
+            self.sg = SendGridAPIClient(api_key=api_key)
+            self.from_email = from_email
+        else:
+            self.sg = None
+    
+    def send_email(self, to_email: str, subject: str, html_content: str, text_content: str = None):
+        try:
+            if not self.sg:
+                return {"success": False, "error": "SendGrid not configured"}
+            
+            mail = Mail(
+                from_email=Email(self.from_email),
+                to_emails=To(to_email),
+                subject=subject,
+                html_content=Content("text/html", html_content)
+            )
+            
+            if text_content:
+                mail.add_content(Content("text/plain", text_content))
+            
+            response = self.sg.send(mail)
+            return {
+                "success": True,
+                "status_code": response.status_code
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+# Email Templates
+class EmailTemplates:
+    BOOKING_CONFIRMATION = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Booking Confirmation</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
+            .content { background: #f9f9f9; padding: 20px; }
+            .booking-details { background: white; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+            .footer { text-align: center; padding: 20px; color: #666; }
+            .button { background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Booking Confirmed!</h1>
+            </div>
+            <div class="content">
+                <p>Dear {{ customer_name }},</p>
+                <p>Your RV/Boat storage booking has been confirmed! We're excited to provide you with secure storage.</p>
+                
+                <div class="booking-details">
+                    <h3>📋 Booking Details</h3>
+                    <p><strong>Unit:</strong> {{ unit_name }}</p>
+                    <p><strong>Size:</strong> {{ unit_size }}</p>
+                    <p><strong>Monthly Rate:</strong> ${{ amount }}</p>
+                    <p><strong>Move-in Date:</strong> {{ move_in_date }}</p>
+                    <p><strong>Booking ID:</strong> {{ booking_id }}</p>
+                </div>
+                
+                <h3>📝 What's Next:</h3>
+                <ul>
+                    <li>📧 You'll receive gate access codes 24 hours before move-in</li>
+                    <li>💳 Payment is due on the 1st of each month</li>
+                    <li>📞 Contact us anytime with questions</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{{ manage_booking_url }}" class="button">Manage Booking</a>
+                </div>
+            </div>
+            <div class="footer">
+                <p>Thank you for choosing our premium storage facility!</p>
+                <p>Questions? Email us or call (555) 123-4567</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    PAYMENT_CONFIRMATION = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Payment Received</title></head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: #28a745; color: white; padding: 20px; text-align: center;">
+                <h1>✅ Payment Received</h1>
+            </div>
+            <div style="background: #f9f9f9; padding: 20px;">
+                <p>Dear {{ customer_name }},</p>
+                <p>We've successfully received your payment! Thank you for keeping your account current.</p>
+                
+                <div style="background: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 8px;">
+                    <h3>💳 Payment Details</h3>
+                    <p><strong>Amount:</strong> ${{ amount }}</p>
+                    <p><strong>Date:</strong> {{ payment_date }}</p>
+                    <p><strong>Unit:</strong> {{ unit_name }}</p>
+                    <p><strong>Transaction ID:</strong> {{ transaction_id }}</p>
+                </div>
+                
+                <p>Your storage unit remains secure and accessible. Next payment due: {{ next_due_date }}</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+# SMS Templates
+class SMSTemplates:
+    @staticmethod
+    def booking_confirmation(customer_name: str, unit_name: str, move_in_date: str, amount: float):
+        return f"""
+🎉 Hi {customer_name}! Your storage booking is CONFIRMED!
+
+📦 Unit: {unit_name}
+📅 Move-in: {move_in_date}
+💰 Rate: ${amount:.2f}/month
+
+Gate codes coming 24hrs before move-in. Questions? Reply HELP
+        """.strip()
+    
+    @staticmethod
+    def payment_confirmation(customer_name: str, amount: float, unit_name: str):
+        return f"""
+✅ Payment received! Thanks {customer_name}!
+
+💳 Amount: ${amount:.2f}
+📦 Unit: {unit_name}
+
+Your storage is secure. Next payment due 1st of next month.
+        """.strip()
+    
+    @staticmethod
+    def move_in_reminder(customer_name: str, unit_name: str, gate_code: str = "TBD"):
+        return f"""
+🚚 Hi {customer_name}! Tomorrow is your move-in day!
+
+📦 Unit: {unit_name}
+🔑 Gate Code: {gate_code}
+
+Facility hours: 6AM-10PM daily. Need help? Call (555) 123-4567
+        """.strip()
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
