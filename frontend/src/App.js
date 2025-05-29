@@ -5,13 +5,6 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-import React, { useState, useEffect } from 'react';
-import './App.css';
-import axios from 'axios';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
 const ImageManager = ({ isOpen, onClose }) => {
   const [images, setImages] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
