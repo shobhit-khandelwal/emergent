@@ -388,6 +388,113 @@ class FilterOptions(BaseModel):
     size_category: Optional[str] = None  # small, medium, large
     availability_date: Optional[datetime] = None
 
+class Customer(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: str
+    phone: Optional[str] = None
+    first_name: str
+    last_name: str
+    company: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    customer_type: str = "individual"  # individual, business, vip
+    acquisition_source: Optional[str] = None  # web, referral, ads, etc.
+    lifetime_value: float = 0.0
+    total_bookings: int = 0
+    loyalty_points: int = 0
+    loyalty_tier: str = "bronze"  # bronze, silver, gold, platinum
+    referral_code: Optional[str] = None
+    referred_by: Optional[str] = None
+    marketing_consent: bool = True
+    tags: List[str] = []
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_activity: datetime = Field(default_factory=datetime.utcnow)
+
+class Location(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    address: str
+    city: str
+    state: str
+    zip_code: str
+    phone: str
+    email: str
+    manager_name: Optional[str] = None
+    hours_of_operation: Dict[str, str] = {}  # {"monday": "6AM-10PM", etc.}
+    amenities: List[str] = []
+    description: Optional[str] = None
+    images: List[str] = []
+    is_active: bool = True
+    gate_access_code: Optional[str] = None
+    special_instructions: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class LoyaltyTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_id: str
+    transaction_type: str  # earned, redeemed, expired, bonus
+    points: int
+    description: str
+    booking_id: Optional[str] = None
+    referral_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class Referral(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    referrer_id: str
+    referred_email: str
+    referred_customer_id: Optional[str] = None
+    status: str = "pending"  # pending, completed, expired
+    referrer_reward: int = 0  # points awarded to referrer
+    referred_reward: int = 0  # points awarded to referred customer
+    booking_id: Optional[str] = None  # booking that completed the referral
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+class BrandSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    location_id: Optional[str] = None  # None for global settings
+    company_name: str = "Premium Storage"
+    logo_url: Optional[str] = None
+    primary_color: str = "#667eea"
+    secondary_color: str = "#764ba2"
+    accent_color: str = "#28a745"
+    font_family: str = "Inter, sans-serif"
+    hero_title: str = "Premium RV & Boat Storage"
+    hero_subtitle: str = "Secure, flexible storage solutions"
+    contact_phone: str = "(555) 123-4567"
+    contact_email: str = "info@example.com"
+    social_media: Dict[str, str] = {}  # {"facebook": "url", "instagram": "url"}
+    custom_css: Optional[str] = None
+    terms_url: Optional[str] = None
+    privacy_url: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PushSubscription(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_id: Optional[str] = None
+    endpoint: str
+    p256dh_key: str
+    auth_key: str
+    user_agent: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class NotificationTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    template_type: str  # email, sms, push
+    subject: Optional[str] = None
+    content: str
+    variables: List[str] = []  # list of template variables like {customer_name}
+    trigger: str  # booking_confirmed, payment_received, etc.
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 class APIKey(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     service: str  # stripe, twilio, sendgrid
