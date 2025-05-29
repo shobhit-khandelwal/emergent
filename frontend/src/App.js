@@ -693,6 +693,7 @@ function App() {
                     key={unit.id}
                     unit={unit}
                     onBook={handleBookUnit}
+                    onChangeImage={adminMode ? handleChangeImage : null}
                     pricingPeriod={filters.pricing_period}
                   />
                 ))}
