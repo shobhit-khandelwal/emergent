@@ -585,6 +585,15 @@ function App() {
     }
   };
 
+  const handleChangeImage = (unit) => {
+    setSelectedUnit(unit);
+    setShowImageManager(true);
+  };
+
+  const toggleAdminMode = () => {
+    setAdminMode(!adminMode);
+  };
+
   useEffect(() => {
     const initialize = async () => {
       if (!initialized) {
