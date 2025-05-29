@@ -1029,7 +1029,9 @@ async def initialize_sample_data():
         "message": "Sample data initialized successfully",
         "physical_units": len(physical_units),
         "virtual_units": len(virtual_units),
-        "image_assets": len(image_assets)
+        "image_assets": len(image_assets),
+        "content_blocks": len(content_blocks),
+        "promo_banners": len(promo_banners)
     }
 
 # Include the router in the main app
