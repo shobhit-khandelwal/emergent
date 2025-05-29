@@ -320,7 +320,8 @@ class StorageAPITester:
         """Test creating a new customer"""
         unique_id = str(uuid.uuid4())[:8]
         data = {
-            "name": f"Test Customer {unique_id}",
+            "first_name": f"Test",
+            "last_name": f"Customer {unique_id}",
             "email": f"test{unique_id}@example.com",
             "phone": f"+1555{unique_id[:7]}",
             "address": "123 Test St, Test City, TS 12345",
