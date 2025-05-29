@@ -187,6 +187,34 @@ const AdminPortal = ({ isOpen, onClose }) => {
     }
   };
 
+  const createApiKey = async () => {
+    try {
+      await axios.post(`${API}/api-keys`, newApiKey);
+      setNewApiKey({
+        service: 'stripe',
+        key_name: 'secret_key',
+        key_value: '',
+        environment: 'test'
+      });
+      fetchApiKeys();
+      fetchIntegrationStatus();
+    } catch (err) {
+      alert('Failed to save API key: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const deleteApiKey = async (keyId) => {
+    if (window.confirm('Are you sure you want to delete this API key?')) {
+      try {
+        await axios.delete(`${API}/api-keys/${keyId}`);
+        fetchApiKeys();
+        fetchIntegrationStatus();
+      } catch (err) {
+        alert('Failed to delete API key: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchAnalytics();
