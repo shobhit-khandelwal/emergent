@@ -383,7 +383,10 @@ class StorageAPITester:
         unique_id = str(uuid.uuid4())[:8]
         data = {
             "name": f"Test Location {unique_id}",
-            "address": "456 Test Ave, Test City, TS 67890",
+            "address": "456 Test Ave",
+            "city": "Test City",
+            "state": "TS",
+            "zip_code": "67890",
             "phone": f"+1555{unique_id[:7]}",
             "email": f"location{unique_id}@example.com",
             "hours": "Mon-Fri: 9am-5pm, Sat: 10am-2pm, Sun: Closed"
