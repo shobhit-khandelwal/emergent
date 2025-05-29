@@ -255,6 +255,11 @@ Facility hours: 6AM-10PM daily. Need help? Call (555) 123-4567
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Initialize services (will be configured via API keys)
+stripe_service = StripeService()
+twilio_service = TwilioService()
+email_service = EmailService()
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
