@@ -335,6 +335,59 @@ async def get_filter_options():
         "price_range": {"min": min_price, "max": max_price}
     }
 
+# Image Management Routes
+
+@api_router.get("/images", response_model=List[ImageAsset])
+async def get_images(category: Optional[str] = None, tags: Optional[str] = None):
+    """Get all images, optionally filtered by category and tags"""
+    query = {}
+    if category:
+        query["category"] = category
+    
+    images = await db.image_assets.find(query).to_list(1000)
+    result = [ImageAsset(**img) for img in images]
+    
+    # Filter by tags if provided
+    if tags:
+        tag_list = [tag.strip() for tag in tags.split(",")]
+        result = [img for img in result if any(tag in img.tags for tag in tag_list)]
+    
+    return result
+
+@api_router.post("/images", response_model=ImageAsset)
+async def create_image(image: ImageAsset):
+    """Add a new image asset"""
+    image_dict = image.dict()
+    await db.image_assets.insert_one(image_dict)
+    return image
+
+@api_router.put("/images/{image_id}", response_model=ImageAsset)
+async def update_image(image_id: str, image: ImageAsset):
+    """Update an existing image asset"""
+    result = await db.image_assets.replace_one({"id": image_id}, image.dict())
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Image not found")
+    return image
+
+@api_router.delete("/images/{image_id}")
+async def delete_image(image_id: str):
+    """Delete an image asset"""
+    result = await db.image_assets.delete_one({"id": image_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Image not found")
+    return {"message": "Image deleted successfully"}
+
+@api_router.put("/virtual-units/{unit_id}/image")
+async def update_unit_image(unit_id: str, image_url: str):
+    """Update the image for a virtual unit"""
+    result = await db.virtual_units.update_one(
+        {"id": unit_id}, 
+        {"$set": {"image_url": image_url}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Virtual unit not found")
+    return {"message": "Unit image updated successfully"}
+
 @api_router.post("/initialize-sample-data")
 async def initialize_sample_data():
     """Initialize the system with sample data"""
