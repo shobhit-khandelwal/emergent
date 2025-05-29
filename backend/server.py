@@ -422,6 +422,186 @@ async def update_unit_image(unit_id: str, image_url: str):
         raise HTTPException(status_code=404, detail="Virtual unit not found")
     return {"message": "Unit image updated successfully"}
 
+# Content Management Routes
+
+@api_router.get("/content", response_model=List[ContentBlock])
+async def get_content(section: Optional[str] = None):
+    """Get all content blocks, optionally filtered by section"""
+    query = {}
+    if section:
+        query["section"] = section
+    
+    content_blocks = await db.content_blocks.find(query).to_list(1000)
+    return [ContentBlock(**block) for block in content_blocks]
+
+@api_router.get("/content/{key}", response_model=ContentBlock)
+async def get_content_by_key(key: str):
+    """Get specific content block by key"""
+    content = await db.content_blocks.find_one({"key": key})
+    if not content:
+        raise HTTPException(status_code=404, detail="Content not found")
+    return ContentBlock(**content)
+
+@api_router.post("/content", response_model=ContentBlock)
+async def create_content(content: ContentBlock):
+    """Create a new content block"""
+    content_dict = content.dict()
+    await db.content_blocks.insert_one(content_dict)
+    return content
+
+@api_router.put("/content/{content_id}", response_model=ContentBlock)
+async def update_content(content_id: str, content: ContentBlock):
+    """Update existing content block"""
+    content.updated_at = datetime.utcnow()
+    result = await db.content_blocks.replace_one({"id": content_id}, content.dict())
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Content not found")
+    return content
+
+@api_router.put("/content/key/{key}")
+async def update_content_by_key(key: str, content_data: dict):
+    """Update content block by key (simplified endpoint)"""
+    update_data = {
+        "content": content_data.get("content"),
+        "updated_at": datetime.utcnow()
+    }
+    result = await db.content_blocks.update_one(
+        {"key": key}, 
+        {"$set": update_data}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Content not found")
+    return {"message": "Content updated successfully"}
+
+# Banner Management Routes
+
+@api_router.get("/banners", response_model=List[PromoBanner])
+async def get_banners(active_only: bool = False, funnel_stage: Optional[str] = None):
+    """Get banners, optionally filtered by active status and funnel stage"""
+    query = {}
+    if active_only:
+        query["is_active"] = True
+        # Check date constraints
+        now = datetime.utcnow()
+        query["$or"] = [
+            {"start_date": None, "end_date": None},
+            {"start_date": {"$lte": now}, "end_date": None},
+            {"start_date": None, "end_date": {"$gte": now}},
+            {"start_date": {"$lte": now}, "end_date": {"$gte": now}}
+        ]
+    
+    banners = await db.promo_banners.find(query).to_list(1000)
+    result = [PromoBanner(**banner) for banner in banners]
+    
+    # Filter by funnel stage if provided
+    if funnel_stage:
+        result = [banner for banner in result if funnel_stage in banner.funnel_stages or not banner.funnel_stages]
+    
+    return result
+
+@api_router.post("/banners", response_model=PromoBanner)
+async def create_banner(banner: PromoBanner):
+    """Create a new promotional banner"""
+    banner_dict = banner.dict()
+    await db.promo_banners.insert_one(banner_dict)
+    return banner
+
+@api_router.put("/banners/{banner_id}", response_model=PromoBanner)
+async def update_banner(banner_id: str, banner: PromoBanner):
+    """Update existing banner"""
+    result = await db.promo_banners.replace_one({"id": banner_id}, banner.dict())
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    return banner
+
+@api_router.delete("/banners/{banner_id}")
+async def delete_banner(banner_id: str):
+    """Delete a banner"""
+    result = await db.promo_banners.delete_one({"id": banner_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Banner not found")
+    return {"message": "Banner deleted successfully"}
+
+# Funnel Tracking Routes
+
+@api_router.post("/funnel/track")
+async def track_funnel_event(event: FunnelEvent):
+    """Track a funnel event"""
+    event_dict = event.dict()
+    await db.funnel_events.insert_one(event_dict)
+    return {"message": "Event tracked successfully"}
+
+@api_router.get("/funnel/user/{session_id}")
+async def get_user_funnel_stage(session_id: str):
+    """Get current funnel stage for a user session"""
+    # Get recent events for this session (last 24 hours)
+    since = datetime.utcnow() - timedelta(days=1)
+    events = await db.funnel_events.find({
+        "session_id": session_id,
+        "timestamp": {"$gte": since}
+    }).sort("timestamp", -1).to_list(100)
+    
+    if not events:
+        return {"funnel_stage": "visitor", "events_count": 0}
+    
+    # Determine funnel stage based on events
+    event_types = [event["event_type"] for event in events]
+    
+    if "booking_completed" in event_types:
+        stage = "booking_completed"
+    elif "booking_abandoned" in event_types:
+        stage = "booking_abandoned"
+    elif "booking_started" in event_types:
+        stage = "booking_started"
+    elif "filter_used" in event_types:
+        stage = "filtering"
+    elif "unit_viewed" in event_types:
+        stage = "viewing_units"
+    elif len(events) > 5:  # Multiple page views
+        stage = "returning_visitor"
+    else:
+        stage = "visitor"
+    
+    return {
+        "funnel_stage": stage,
+        "events_count": len(events),
+        "last_activity": events[0]["timestamp"] if events else None
+    }
+
+@api_router.get("/admin/analytics")
+async def get_admin_analytics():
+    """Get analytics data for admin dashboard"""
+    # Get total counts
+    total_units = await db.virtual_units.count_documents({})
+    total_bookings = await db.bookings.count_documents({})
+    total_images = await db.image_assets.count_documents({})
+    
+    # Get recent funnel events (last 7 days)
+    since = datetime.utcnow() - timedelta(days=7)
+    recent_events = await db.funnel_events.find({
+        "timestamp": {"$gte": since}
+    }).to_list(1000)
+    
+    # Count events by type
+    event_counts = {}
+    for event in recent_events:
+        event_type = event["event_type"]
+        event_counts[event_type] = event_counts.get(event_type, 0) + 1
+    
+    # Get unique sessions
+    unique_sessions = len(set(event["session_id"] for event in recent_events))
+    
+    return {
+        "total_units": total_units,
+        "total_bookings": total_bookings,
+        "total_images": total_images,
+        "last_7_days": {
+            "unique_visitors": unique_sessions,
+            "event_counts": event_counts,
+            "total_events": len(recent_events)
+        }
+    }
+
 @api_router.post("/initialize-sample-data")
 async def initialize_sample_data():
     """Initialize the system with sample data"""
