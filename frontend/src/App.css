@@ -1314,30 +1314,618 @@ body {
   font-size: 0.9rem;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .promo-banner {
-    flex-direction: column;
-    text-align: center;
-    padding: 15px;
-  }
+/* PWA Install Banner */
+.pwa-install-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
 
-  .admin-portal {
-    width: 100%;
-    height: 100%;
-    border-radius: 0;
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
   }
-
-  .banner-item {
-    flex-direction: column;
-  }
-
-  .hero {
-    flex-direction: column;
-    text-align: center;
-    padding: 2rem 1rem;
+  to {
+    transform: translateY(0);
   }
 }
+
+.pwa-install-banner .banner-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pwa-install-banner .banner-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.install-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.install-btn:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-1px);
+}
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.dismiss-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* CRM Styles */
+.crm-tab h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.crm-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.search-filters {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.search-input {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 250px;
+}
+
+.filter-select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.add-customer-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crm-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.customers-list h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.customers-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.customer-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.customer-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.customer-card.selected {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.customer-header h5 {
+  margin: 0;
+  color: #333;
+}
+
+.tier-badge {
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.customer-email {
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.customer-stats {
+  display: flex;
+  gap: 15px;
+}
+
+.customer-stats .stat {
+  font-size: 12px;
+  color: #555;
+}
+
+.customer-details {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.customer-type {
+  background: #e9ecef;
+  color: #495057;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.details-section {
+  margin-bottom: 25px;
+}
+
+.details-section h5 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.contact-info p {
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.loyalty-overview {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.loyalty-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.loyalty-stat {
+  text-align: center;
+}
+
+.loyalty-stat .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.loyalty-stat .stat-label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.loyalty-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.award-points-btn,
+.redeem-points-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.award-points-btn {
+  background: #28a745;
+  color: white;
+}
+
+.redeem-points-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.loyalty-transactions h6 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.transaction-item {
+  display: grid;
+  grid-template-columns: 30px 80px 1fr 100px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.transaction-type.earned {
+  color: #28a745;
+}
+
+.transaction-type.redeemed {
+  color: #dc3545;
+}
+
+.transaction-points {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.transaction-description {
+  color: #555;
+  font-size: 14px;
+}
+
+.transaction-date {
+  font-size: 12px;
+  color: #666;
+}
+
+.bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.booking-item {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.booking-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.booking-amount {
+  font-weight: 600;
+  color: #28a745;
+}
+
+.booking-details p {
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #555;
+}
+
+.add-customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.add-customer-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.add-customer-form input,
+.add-customer-form select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.create-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Location Management Styles */
+.locations-tab h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.locations-controls {
+  margin-bottom: 25px;
+}
+
+.add-location-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.locations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 25px;
+}
+
+.location-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.location-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.location-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.location-details {
+  margin-bottom: 20px;
+}
+
+.location-details p {
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.location-amenities,
+.location-hours {
+  margin-bottom: 15px;
+}
+
+.location-amenities h5,
+.location-hours h5 {
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 1rem;
+}
+
+.amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.amenity-tag {
+  background: #e9ecef;
+  color: #495057;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.hours-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hours-summary span {
+  font-size: 12px;
+  color: #666;
+}
+
+.location-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-location-btn,
+.toggle-status-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-location-btn {
+  background: #007bff;
+  color: white;
+}
+
+.toggle-status-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.large-modal {
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.location-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.form-section h4 {
+  margin-bottom: 15px;
+  color: #333;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
+.location-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.location-form input,
+.location-form textarea {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.location-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.amenities-selection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.amenity-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.amenity-checkbox input {
+  width: auto;
+  margin: 0;
+}
+
+.hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.hours-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hours-row label {
+  font-weight: 500;
+  font-size: 14px;
+  color: #555;
+}
+
+.save-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Responsive Design */
 
 .admin-notice {
   background: #fff3cd;
