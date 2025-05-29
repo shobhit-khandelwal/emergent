@@ -1754,6 +1754,23 @@ function App() {
 
   return (
     <div className="App">
+      {/* PWA Install Banner */}
+      {showInstallPrompt && (
+        <div className="pwa-install-banner">
+          <div className="banner-content">
+            <span>📱 Install our app for the best experience!</span>
+            <div className="banner-actions">
+              <button onClick={handleInstallPWA} className="install-btn">
+                Install App
+              </button>
+              <button onClick={() => setShowInstallPrompt(false)} className="dismiss-btn">
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Promotional Banner */}
       {currentBanner && (
         <PromoBanner banner={currentBanner} onClose={dismissBanner} />
