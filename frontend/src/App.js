@@ -264,6 +264,9 @@ const AdminPortal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="admin-content">
+          {activeTab === 'integrations' && (
+            <AdminIntegrations />
+          )}
           {activeTab === 'dashboard' && (
             <div className="dashboard-tab">
               <h3>Analytics Overview</h3>
