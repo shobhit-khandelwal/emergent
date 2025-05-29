@@ -107,6 +107,40 @@ class FilterOptions(BaseModel):
     size_category: Optional[str] = None  # small, medium, large
     availability_date: Optional[datetime] = None
 
+class ContentBlock(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    key: str  # e.g., "hero_title", "hero_subtitle", "feature_1_title"
+    content: str
+    content_type: str = "text"  # text, html, markdown
+    section: str  # hero, features, units, general
+    editable: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PromoBanner(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    message: str
+    cta_text: str
+    cta_url: Optional[str] = None
+    banner_type: str  # success, warning, info, promotional
+    funnel_stages: List[str] = []  # visitor, viewing_units, filtering, booking_started, booking_abandoned, returning_visitor
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    is_active: bool = True
+    background_color: str = "#667eea"
+    text_color: str = "#ffffff"
+    image_url: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FunnelEvent(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str
+    event_type: str  # page_view, unit_viewed, filter_used, booking_started, booking_completed, booking_abandoned
+    unit_id: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    metadata: Optional[Dict[str, Any]] = None
+
 class BookingRequest(BaseModel):
     virtual_unit_id: str
     customer_name: str
