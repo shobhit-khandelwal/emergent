@@ -5,6 +5,407 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Utility to generate session ID
+const getSessionId = () => {
+  let sessionId = localStorage.getItem('sessionId');
+  if (!sessionId) {
+    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('sessionId', sessionId);
+  }
+  return sessionId;
+};
+
+// Funnel tracking utility
+const trackEvent = async (eventType, metadata = {}) => {
+  try {
+    await axios.post(`${API}/funnel/track`, {
+      session_id: getSessionId(),
+      event_type: eventType,
+      metadata
+    });
+  } catch (err) {
+    console.error('Failed to track event:', err);
+  }
+};
+
+const PromoBanner = ({ banner, onClose }) => {
+  if (!banner) return null;
+
+  return (
+    <div 
+      className="promo-banner"
+      style={{
+        backgroundColor: banner.background_color,
+        color: banner.text_color
+      }}
+    >
+      <div className="banner-content">
+        <strong>{banner.title}</strong>
+        <span>{banner.message}</span>
+        {banner.cta_text && (
+          <button 
+            className="banner-cta"
+            onClick={() => {
+              if (banner.cta_url && banner.cta_url !== '#') {
+                window.location.href = banner.cta_url;
+              }
+              trackEvent('banner_clicked', { banner_id: banner.id });
+            }}
+          >
+            {banner.cta_text}
+          </button>
+        )}
+      </div>
+      <button className="banner-close" onClick={() => onClose(banner.id)}>×</button>
+    </div>
+  );
+};
+
+const AdminPortal = ({ isOpen, onClose }) => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [analytics, setAnalytics] = useState({});
+  const [content, setContent] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [editingContent, setEditingContent] = useState(null);
+  const [editingBanner, setEditingBanner] = useState(null);
+  const [newBanner, setNewBanner] = useState({
+    title: '',
+    message: '',
+    cta_text: '',
+    cta_url: '',
+    banner_type: 'info',
+    funnel_stages: [],
+    background_color: '#667eea',
+    text_color: '#ffffff'
+  });
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/analytics`);
+      setAnalytics(response.data);
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+    }
+  };
+
+  const fetchContent = async () => {
+    try {
+      const response = await axios.get(`${API}/content`);
+      setContent(response.data);
+    } catch (err) {
+      console.error('Failed to fetch content:', err);
+    }
+  };
+
+  const fetchBanners = async () => {
+    try {
+      const response = await axios.get(`${API}/banners`);
+      setBanners(response.data);
+    } catch (err) {
+      console.error('Failed to fetch banners:', err);
+    }
+  };
+
+  const updateContent = async (key, newContent) => {
+    try {
+      await axios.put(`${API}/content/key/${key}`, { content: newContent });
+      fetchContent();
+      setEditingContent(null);
+    } catch (err) {
+      alert('Failed to update content: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const createBanner = async () => {
+    try {
+      await axios.post(`${API}/banners`, newBanner);
+      setNewBanner({
+        title: '',
+        message: '',
+        cta_text: '',
+        cta_url: '',
+        banner_type: 'info',
+        funnel_stages: [],
+        background_color: '#667eea',
+        text_color: '#ffffff'
+      });
+      fetchBanners();
+    } catch (err) {
+      alert('Failed to create banner: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const deleteBanner = async (bannerId) => {
+    if (window.confirm('Are you sure you want to delete this banner?')) {
+      try {
+        await axios.delete(`${API}/banners/${bannerId}`);
+        fetchBanners();
+      } catch (err) {
+        alert('Failed to delete banner: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
+  const toggleBannerStage = (stage) => {
+    const stages = newBanner.funnel_stages;
+    if (stages.includes(stage)) {
+      setNewBanner({
+        ...newBanner,
+        funnel_stages: stages.filter(s => s !== stage)
+      });
+    } else {
+      setNewBanner({
+        ...newBanner,
+        funnel_stages: [...stages, stage]
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAnalytics();
+      fetchContent();
+      fetchBanners();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="admin-portal">
+        <div className="admin-header">
+          <h2>🏢 Admin Portal</h2>
+          <button onClick={onClose} className="close-btn">×</button>
+        </div>
+
+        <div className="admin-nav">
+          <button 
+            className={activeTab === 'dashboard' ? 'active' : ''}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+          <button 
+            className={activeTab === 'content' ? 'active' : ''}
+            onClick={() => setActiveTab('content')}
+          >
+            📝 Content
+          </button>
+          <button 
+            className={activeTab === 'banners' ? 'active' : ''}
+            onClick={() => setActiveTab('banners')}
+          >
+            🎯 Banners
+          </button>
+        </div>
+
+        <div className="admin-content">
+          {activeTab === 'dashboard' && (
+            <div className="dashboard-tab">
+              <h3>Analytics Overview</h3>
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <h4>Total Units</h4>
+                  <p className="stat-number">{analytics.total_units}</p>
+                </div>
+                <div className="stat-card">
+                  <h4>Total Bookings</h4>
+                  <p className="stat-number">{analytics.total_bookings}</p>
+                </div>
+                <div className="stat-card">
+                  <h4>Total Images</h4>
+                  <p className="stat-number">{analytics.total_images}</p>
+                </div>
+                <div className="stat-card">
+                  <h4>Unique Visitors (7d)</h4>
+                  <p className="stat-number">{analytics.last_7_days?.unique_visitors}</p>
+                </div>
+              </div>
+
+              {analytics.last_7_days?.event_counts && (
+                <div className="events-section">
+                  <h4>User Activity (Last 7 Days)</h4>
+                  <div className="events-list">
+                    {Object.entries(analytics.last_7_days.event_counts).map(([event, count]) => (
+                      <div key={event} className="event-item">
+                        <span className="event-name">{event.replace('_', ' ')}</span>
+                        <span className="event-count">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'content' && (
+            <div className="content-tab">
+              <h3>Content Management</h3>
+              <div className="content-list">
+                {content.map(item => (
+                  <div key={item.id} className="content-item">
+                    <div className="content-header">
+                      <h4>{item.key}</h4>
+                      <span className="content-section">{item.section}</span>
+                    </div>
+                    {editingContent === item.key ? (
+                      <div className="content-edit">
+                        <textarea
+                          value={item.content}
+                          onChange={(e) => {
+                            const updatedContent = content.map(c => 
+                              c.key === item.key ? {...c, content: e.target.value} : c
+                            );
+                            setContent(updatedContent);
+                          }}
+                        />
+                        <div className="edit-actions">
+                          <button 
+                            onClick={() => updateContent(item.key, item.content)}
+                            className="save-btn"
+                          >
+                            Save
+                          </button>
+                          <button 
+                            onClick={() => setEditingContent(null)}
+                            className="cancel-btn"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="content-display">
+                        <p>{item.content}</p>
+                        <button 
+                          onClick={() => setEditingContent(item.key)}
+                          className="edit-btn"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'banners' && (
+            <div className="banners-tab">
+              <h3>Banner Management</h3>
+              
+              <div className="create-banner">
+                <h4>Create New Banner</h4>
+                <div className="banner-form">
+                  <input
+                    type="text"
+                    placeholder="Banner Title"
+                    value={newBanner.title}
+                    onChange={(e) => setNewBanner({...newBanner, title: e.target.value})}
+                  />
+                  <textarea
+                    placeholder="Banner Message"
+                    value={newBanner.message}
+                    onChange={(e) => setNewBanner({...newBanner, message: e.target.value})}
+                  />
+                  <input
+                    type="text"
+                    placeholder="CTA Text"
+                    value={newBanner.cta_text}
+                    onChange={(e) => setNewBanner({...newBanner, cta_text: e.target.value})}
+                  />
+                  <input
+                    type="text"
+                    placeholder="CTA URL"
+                    value={newBanner.cta_url}
+                    onChange={(e) => setNewBanner({...newBanner, cta_url: e.target.value})}
+                  />
+                  
+                  <div className="form-row">
+                    <select
+                      value={newBanner.banner_type}
+                      onChange={(e) => setNewBanner({...newBanner, banner_type: e.target.value})}
+                    >
+                      <option value="info">Info</option>
+                      <option value="success">Success</option>
+                      <option value="warning">Warning</option>
+                      <option value="promotional">Promotional</option>
+                    </select>
+                    
+                    <input
+                      type="color"
+                      value={newBanner.background_color}
+                      onChange={(e) => setNewBanner({...newBanner, background_color: e.target.value})}
+                      title="Background Color"
+                    />
+                    
+                    <input
+                      type="color"
+                      value={newBanner.text_color}
+                      onChange={(e) => setNewBanner({...newBanner, text_color: e.target.value})}
+                      title="Text Color"
+                    />
+                  </div>
+                  
+                  <div className="funnel-stages">
+                    <h5>Target Funnel Stages:</h5>
+                    {['visitor', 'viewing_units', 'filtering', 'booking_started', 'booking_abandoned', 'booking_completed', 'returning_visitor'].map(stage => (
+                      <label key={stage} className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={newBanner.funnel_stages.includes(stage)}
+                          onChange={() => toggleBannerStage(stage)}
+                        />
+                        {stage.replace('_', ' ')}
+                      </label>
+                    ))}
+                  </div>
+                  
+                  <button onClick={createBanner} className="create-btn">
+                    Create Banner
+                  </button>
+                </div>
+              </div>
+
+              <div className="banners-list">
+                <h4>Existing Banners</h4>
+                {banners.map(banner => (
+                  <div key={banner.id} className="banner-item">
+                    <div 
+                      className="banner-preview"
+                      style={{
+                        backgroundColor: banner.background_color,
+                        color: banner.text_color
+                      }}
+                    >
+                      <strong>{banner.title}</strong>
+                      <p>{banner.message}</p>
+                      {banner.cta_text && <button>{banner.cta_text}</button>}
+                    </div>
+                    <div className="banner-info">
+                      <p><strong>Type:</strong> {banner.banner_type}</p>
+                      <p><strong>Stages:</strong> {banner.funnel_stages.join(', ') || 'All'}</p>
+                      <p><strong>Active:</strong> {banner.is_active ? 'Yes' : 'No'}</p>
+                      <button 
+                        onClick={() => deleteBanner(banner.id)}
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ImageManager = ({ isOpen, onClose }) => {
   const [images, setImages] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -224,8 +625,12 @@ const UnitCard = ({ unit, onBook, pricingPeriod, onChangeImage }) => {
     return 'Medium';
   };
 
+  const handleUnitClick = () => {
+    trackEvent('unit_viewed', { unit_id: unit.id, unit_type: unit.unit_type });
+  };
+
   return (
-    <div className="unit-card">
+    <div className="unit-card" onClick={handleUnitClick}>
       <div className="unit-image">
         <img src={unit.image_url} alt={unit.display_name} />
         <div className="unit-type-badge">
@@ -234,7 +639,10 @@ const UnitCard = ({ unit, onBook, pricingPeriod, onChangeImage }) => {
         {onChangeImage && (
           <button 
             className="change-image-btn"
-            onClick={() => onChangeImage(unit)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChangeImage(unit);
+            }}
             title="Change Image"
           >
             🖼️
@@ -272,7 +680,11 @@ const UnitCard = ({ unit, onBook, pricingPeriod, onChangeImage }) => {
           
           <button 
             className="book-button"
-            onClick={() => onBook(unit)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBook(unit);
+              trackEvent('booking_started', { unit_id: unit.id });
+            }}
           >
             Book Now
           </button>
@@ -283,6 +695,11 @@ const UnitCard = ({ unit, onBook, pricingPeriod, onChangeImage }) => {
 };
 
 const FilterPanel = ({ filters, onFilterChange, filterOptions }) => {
+  const handleFilterChange = (key, value) => {
+    onFilterChange(key, value);
+    trackEvent('filter_used', { filter_key: key, filter_value: value });
+  };
+
   return (
     <div className="filter-panel">
       <h3>Filter Units</h3>
@@ -291,7 +708,7 @@ const FilterPanel = ({ filters, onFilterChange, filterOptions }) => {
         <label>Unit Type</label>
         <select 
           value={filters.unit_type || ''} 
-          onChange={(e) => onFilterChange('unit_type', e.target.value || null)}
+          onChange={(e) => handleFilterChange('unit_type', e.target.value || null)}
         >
           <option value="">All Types</option>
           {filterOptions.unit_types?.map(type => (
@@ -306,7 +723,7 @@ const FilterPanel = ({ filters, onFilterChange, filterOptions }) => {
         <label>Size Category</label>
         <select 
           value={filters.size_category || ''} 
-          onChange={(e) => onFilterChange('size_category', e.target.value || null)}
+          onChange={(e) => handleFilterChange('size_category', e.target.value || null)}
         >
           <option value="">All Sizes</option>
           {filterOptions.size_categories?.map(size => (
@@ -321,7 +738,7 @@ const FilterPanel = ({ filters, onFilterChange, filterOptions }) => {
         <label>Pricing Period</label>
         <select 
           value={filters.pricing_period || 'monthly'} 
-          onChange={(e) => onFilterChange('pricing_period', e.target.value)}
+          onChange={(e) => handleFilterChange('pricing_period', e.target.value)}
         >
           {filterOptions.pricing_periods?.map(period => (
             <option key={period} value={period}>
@@ -338,14 +755,14 @@ const FilterPanel = ({ filters, onFilterChange, filterOptions }) => {
             type="number"
             placeholder="Min"
             value={filters.min_price || ''}
-            onChange={(e) => onFilterChange('min_price', e.target.value ? parseFloat(e.target.value) : null)}
+            onChange={(e) => handleFilterChange('min_price', e.target.value ? parseFloat(e.target.value) : null)}
           />
           <span>to</span>
           <input
             type="number"
             placeholder="Max"
             value={filters.max_price || ''}
-            onChange={(e) => onFilterChange('max_price', e.target.value ? parseFloat(e.target.value) : null)}
+            onChange={(e) => handleFilterChange('max_price', e.target.value ? parseFloat(e.target.value) : null)}
           />
         </div>
       </div>
@@ -361,9 +778,9 @@ const FilterPanel = ({ filters, onFilterChange, filterOptions }) => {
                 onChange={(e) => {
                   const currentAmenities = filters.amenities || [];
                   if (e.target.checked) {
-                    onFilterChange('amenities', [...currentAmenities, amenity]);
+                    handleFilterChange('amenities', [...currentAmenities, amenity]);
                   } else {
-                    onFilterChange('amenities', currentAmenities.filter(a => a !== amenity));
+                    handleFilterChange('amenities', currentAmenities.filter(a => a !== amenity));
                   }
                 }}
               />
@@ -396,6 +813,11 @@ const BookingModal = ({ unit, isOpen, onClose, onSubmit }) => {
       start_date: new Date(formData.start_date).toISOString(),
       move_in_date: new Date(formData.move_in_date).toISOString()
     });
+  };
+
+  const handleClose = () => {
+    trackEvent('booking_abandoned', { unit_id: unit?.id });
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -490,7 +912,7 @@ const BookingModal = ({ unit, isOpen, onClose, onSubmit }) => {
           </div>
           
           <div className="modal-actions">
-            <button type="button" onClick={onClose} className="cancel-button">
+            <button type="button" onClick={handleClose} className="cancel-button">
               Cancel
             </button>
             <button type="submit" className="submit-button">
@@ -514,8 +936,13 @@ function App() {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showImageManager, setShowImageManager] = useState(false);
+  const [showAdminPortal, setShowAdminPortal] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [content, setContent] = useState({});
+  const [currentBanner, setCurrentBanner] = useState(null);
+  const [dismissedBanners, setDismissedBanners] = useState([]);
+  const [userFunnelStage, setUserFunnelStage] = useState('visitor');
 
   const initializeData = async () => {
     try {
@@ -524,6 +951,47 @@ function App() {
     } catch (err) {
       console.error('Failed to initialize data:', err);
     }
+  };
+
+  const fetchContent = async () => {
+    try {
+      const response = await axios.get(`${API}/content`);
+      const contentMap = {};
+      response.data.forEach(item => {
+        contentMap[item.key] = item.content;
+      });
+      setContent(contentMap);
+    } catch (err) {
+      console.error('Failed to fetch content:', err);
+    }
+  };
+
+  const fetchUserFunnelStage = async () => {
+    try {
+      const response = await axios.get(`${API}/funnel/user/${getSessionId()}`);
+      setUserFunnelStage(response.data.funnel_stage);
+    } catch (err) {
+      console.error('Failed to fetch funnel stage:', err);
+    }
+  };
+
+  const fetchActiveBanner = async () => {
+    try {
+      const response = await axios.get(`${API}/banners?active_only=true&funnel_stage=${userFunnelStage}`);
+      const availableBanners = response.data.filter(banner => !dismissedBanners.includes(banner.id));
+      if (availableBanners.length > 0) {
+        setCurrentBanner(availableBanners[0]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch banners:', err);
+    }
+  };
+
+  const dismissBanner = (bannerId) => {
+    const newDismissed = [...dismissedBanners, bannerId];
+    setDismissedBanners(newDismissed);
+    localStorage.setItem('dismissedBanners', JSON.stringify(newDismissed));
+    setCurrentBanner(null);
   };
 
   const fetchFilterOptions = async () => {
@@ -577,6 +1045,7 @@ function App() {
     try {
       await axios.post(`${API}/bookings`, bookingData);
       alert('Booking created successfully!');
+      trackEvent('booking_completed', { unit_id: bookingData.virtual_unit_id });
       setShowBookingModal(false);
       setSelectedUnit(null);
       fetchVirtualUnits(); // Refresh the list
@@ -594,13 +1063,26 @@ function App() {
     setAdminMode(!adminMode);
   };
 
+  // Track page view on load
+  useEffect(() => {
+    trackEvent('page_view', { page: 'home' });
+    
+    // Load dismissed banners from localStorage
+    const stored = localStorage.getItem('dismissedBanners');
+    if (stored) {
+      setDismissedBanners(JSON.parse(stored));
+    }
+  }, []);
+
   useEffect(() => {
     const initialize = async () => {
       if (!initialized) {
         await initializeData();
       }
+      await fetchContent();
       await fetchFilterOptions();
       await fetchVirtualUnits();
+      await fetchUserFunnelStage();
     };
     
     initialize();
@@ -612,9 +1094,20 @@ function App() {
     }
   }, [filters, initialized]);
 
+  useEffect(() => {
+    if (userFunnelStage) {
+      fetchActiveBanner();
+    }
+  }, [userFunnelStage, dismissedBanners]);
+
   return (
     <div className="App">
-      {/* Admin Toggle */}
+      {/* Promotional Banner */}
+      {currentBanner && (
+        <PromoBanner banner={currentBanner} onClose={dismissBanner} />
+      )}
+
+      {/* Admin Controls */}
       <div className="admin-controls">
         <button 
           onClick={toggleAdminMode}
@@ -623,21 +1116,29 @@ function App() {
           {adminMode ? '👨‍💼 Admin Mode ON' : '👤 User Mode'}
         </button>
         {adminMode && (
-          <button 
-            onClick={() => setShowImageManager(true)}
-            className="image-manager-btn"
-          >
-            🖼️ Manage Images
-          </button>
+          <>
+            <button 
+              onClick={() => setShowAdminPortal(true)}
+              className="admin-portal-btn"
+            >
+              🏢 Admin Portal
+            </button>
+            <button 
+              onClick={() => setShowImageManager(true)}
+              className="image-manager-btn"
+            >
+              🖼️ Manage Images
+            </button>
+          </>
         )}
       </div>
 
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">
-          <h1>Premium RV & Boat Storage</h1>
-          <p>Secure, flexible storage solutions with multiple booking options</p>
-          {adminMode && <p className="admin-notice">🔧 Admin Mode: You can now change unit images</p>}
+          <h1>{content.hero_title || 'Premium RV & Boat Storage'}</h1>
+          <p>{content.hero_subtitle || 'Secure, flexible storage solutions with multiple booking options'}</p>
+          {adminMode && <p className="admin-notice">🔧 Admin Mode: You can now manage content and banners</p>}
           <div className="hero-stats">
             <div className="stat">
               <span className="number">{virtualUnits.length}</span>
@@ -683,7 +1184,7 @@ function App() {
           ) : (
             <>
               <div className="results-header">
-                <h2>Available Storage Units</h2>
+                <h2>{content.results_header_title || 'Available Storage Units'}</h2>
                 <p>{virtualUnits.length} units match your criteria</p>
               </div>
 
@@ -721,6 +1222,12 @@ function App() {
         onSubmit={handleBookingSubmit}
       />
 
+      {/* Admin Portal */}
+      <AdminPortal
+        isOpen={showAdminPortal}
+        onClose={() => setShowAdminPortal(false)}
+      />
+
       {/* Image Manager */}
       <ImageManager
         isOpen={showImageManager}
@@ -737,18 +1244,18 @@ function App() {
         <div className="features-grid">
           <div className="feature">
             <img src="https://images.unsplash.com/photo-1551313158-73d016a829ae" alt="Secure Storage" />
-            <h3>Secure & Safe</h3>
-            <p>24/7 security monitoring and controlled access</p>
+            <h3>{content.feature_1_title || 'Secure & Safe'}</h3>
+            <p>{content.feature_1_description || '24/7 security monitoring and controlled access'}</p>
           </div>
           <div className="feature">
             <img src="https://images.pexels.com/photos/13388790/pexels-photo-13388790.jpeg" alt="Flexible Options" />
-            <h3>Flexible Booking</h3>
-            <p>Pay now or later, move in when convenient</p>
+            <h3>{content.feature_2_title || 'Flexible Booking'}</h3>
+            <p>{content.feature_2_description || 'Pay now or later, move in when convenient'}</p>
           </div>
           <div className="feature">
             <img src="https://images.unsplash.com/photo-1711130361680-a3beb1369ef5" alt="Multiple Sizes" />
-            <h3>Multiple Sizes</h3>
-            <p>From small boats to large RVs, we have space for everything</p>
+            <h3>{content.feature_3_title || 'Multiple Sizes'}</h3>
+            <p>{content.feature_3_description || 'From small boats to large RVs, we have space for everything'}</p>
           </div>
         </div>
       </section>
