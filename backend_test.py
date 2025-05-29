@@ -287,6 +287,163 @@ class StorageAPITester:
             f"api-keys/{key_id}",
             200
         )
+    
+    # Tier 2B: CRM System Tests
+    def test_get_customers(self):
+        """Test getting all customers"""
+        return self.run_test(
+            "Get All Customers",
+            "GET",
+            "customers",
+            200
+        )
+    
+    def test_get_customer(self, customer_id):
+        """Test getting a specific customer"""
+        return self.run_test(
+            f"Get Customer {customer_id}",
+            "GET",
+            f"customers/{customer_id}",
+            200
+        )
+    
+    def test_get_customer_bookings(self, customer_id):
+        """Test getting a customer's bookings"""
+        return self.run_test(
+            f"Get Customer Bookings for {customer_id}",
+            "GET",
+            f"customers/{customer_id}/bookings",
+            200
+        )
+    
+    def test_create_customer(self):
+        """Test creating a new customer"""
+        unique_id = str(uuid.uuid4())[:8]
+        data = {
+            "name": f"Test Customer {unique_id}",
+            "email": f"test{unique_id}@example.com",
+            "phone": f"+1555{unique_id[:7]}",
+            "address": "123 Test St, Test City, TS 12345",
+            "customer_type": "business",
+            "notes": "Test customer created via API test"
+        }
+        success, response = self.run_test(
+            "Create Customer",
+            "POST",
+            "customers",
+            201,
+            data=data
+        )
+        if success and 'id' in response:
+            self.created_customer_id = response['id']
+            print(f"Created customer with ID: {self.created_customer_id}")
+        return success, response
+    
+    # Tier 2B: Loyalty Program Tests
+    def test_get_customer_loyalty(self, customer_id):
+        """Test getting a customer's loyalty information"""
+        return self.run_test(
+            f"Get Loyalty Info for Customer {customer_id}",
+            "GET",
+            f"loyalty/customer/{customer_id}",
+            200
+        )
+    
+    def test_award_loyalty_points(self, customer_id, points=100, reason="API Testing"):
+        """Test awarding loyalty points to a customer"""
+        data = {
+            "customer_id": customer_id,
+            "points": points,
+            "reason": reason
+        }
+        return self.run_test(
+            f"Award {points} Loyalty Points to Customer {customer_id}",
+            "POST",
+            "loyalty/award-points",
+            200,
+            data=data
+        )
+    
+    def test_redeem_loyalty_points(self, customer_id, points=50, reward="Test Reward"):
+        """Test redeeming loyalty points for a customer"""
+        data = {
+            "customer_id": customer_id,
+            "points": points,
+            "reward": reward
+        }
+        return self.run_test(
+            f"Redeem {points} Loyalty Points for Customer {customer_id}",
+            "POST",
+            "loyalty/redeem-points",
+            200,
+            data=data
+        )
+    
+    # Tier 2B: Location Management Tests
+    def test_get_locations(self):
+        """Test getting all locations"""
+        return self.run_test(
+            "Get All Locations",
+            "GET",
+            "locations",
+            200
+        )
+    
+    def test_create_location(self):
+        """Test creating a new location"""
+        unique_id = str(uuid.uuid4())[:8]
+        data = {
+            "name": f"Test Location {unique_id}",
+            "address": "456 Test Ave, Test City, TS 67890",
+            "phone": f"+1555{unique_id[:7]}",
+            "email": f"location{unique_id}@example.com",
+            "hours": "Mon-Fri: 9am-5pm, Sat: 10am-2pm, Sun: Closed"
+        }
+        success, response = self.run_test(
+            "Create Location",
+            "POST",
+            "locations",
+            201,
+            data=data
+        )
+        if success and 'id' in response:
+            self.created_location_id = response['id']
+            print(f"Created location with ID: {self.created_location_id}")
+        return success, response
+    
+    # Tier 2B: Brand Settings Tests
+    def test_get_brand_settings(self):
+        """Test getting brand settings"""
+        return self.run_test(
+            "Get Brand Settings",
+            "GET",
+            "brand-settings",
+            200
+        )
+    
+    def test_update_brand_settings(self):
+        """Test updating brand settings"""
+        data = {
+            "company_name": "Storage Solutions Enterprise",
+            "logo_url": "https://example.com/logo.png",
+            "primary_color": "#336699",
+            "secondary_color": "#99CCFF",
+            "font_family": "Roboto, sans-serif",
+            "contact_email": "contact@storagesolutions.example",
+            "contact_phone": "+15551234567",
+            "social_media": {
+                "facebook": "https://facebook.com/storagesolutions",
+                "twitter": "https://twitter.com/storagesolutions",
+                "instagram": "https://instagram.com/storagesolutions"
+            }
+        }
+        return self.run_test(
+            "Update Brand Settings",
+            "POST",
+            "brand-settings",
+            200,
+            data=data
+        )
 
 def main():
     # Get backend URL from environment or use default
@@ -305,7 +462,7 @@ def main():
     # Setup tester
     tester = StorageAPITester(backend_url)
     
-    # Run tests
+    # Run basic tests
     tester.test_root_endpoint()
     tester.test_get_content()
     tester.test_get_banners()
@@ -313,6 +470,37 @@ def main():
     tester.test_get_virtual_units()
     tester.test_get_filter_options()
     tester.test_get_admin_analytics()
+    
+    # Run Tier 2B: CRM System Tests
+    print("\n🧪 Testing CRM System APIs...")
+    tester.test_get_customers()
+    success, _ = tester.test_create_customer()
+    if success and tester.created_customer_id:
+        tester.test_get_customer(tester.created_customer_id)
+        tester.test_get_customer_bookings(tester.created_customer_id)
+    
+    # Run Tier 2B: Loyalty Program Tests
+    print("\n🧪 Testing Loyalty Program APIs...")
+    if tester.created_customer_id:
+        tester.test_get_customer_loyalty(tester.created_customer_id)
+        tester.test_award_loyalty_points(tester.created_customer_id)
+        tester.test_redeem_loyalty_points(tester.created_customer_id)
+    else:
+        # Try with a sample customer ID if we couldn't create one
+        sample_customer_id = "customer_1"
+        tester.test_get_customer_loyalty(sample_customer_id)
+        tester.test_award_loyalty_points(sample_customer_id)
+        tester.test_redeem_loyalty_points(sample_customer_id)
+    
+    # Run Tier 2B: Location Management Tests
+    print("\n🧪 Testing Location Management APIs...")
+    tester.test_get_locations()
+    tester.test_create_location()
+    
+    # Run Tier 2B: Brand Settings Tests
+    print("\n🧪 Testing Brand Settings APIs...")
+    tester.test_get_brand_settings()
+    tester.test_update_brand_settings()
     
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
