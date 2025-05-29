@@ -615,7 +615,7 @@ const AdminPortal = ({ isOpen, onClose }) => {
                       <ol>
                         <li>Visit <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer">Stripe Dashboard</a></li>
                         <li>Copy your Secret Key (sk_test_... for testing)</li>
-                        <li>Add it above as "Stripe > Secret Key"</li>
+                        <li>Add it above as "Stripe &gt; Secret Key"</li>
                       </ol>
                     </div>
                     <div className="instruction-card">
@@ -766,7 +766,7 @@ const AdminPortal = ({ isOpen, onClose }) => {
                       <ol>
                         <li>Visit <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer">Stripe Dashboard</a></li>
                         <li>Copy your Secret Key (sk_test_... for testing)</li>
-                        <li>Add it above as "Stripe > Secret Key"</li>
+                        <li>Add it above as "Stripe &gt; Secret Key"</li>
                       </ol>
                     </div>
                     <div className="instruction-card">
