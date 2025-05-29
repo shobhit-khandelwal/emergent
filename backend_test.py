@@ -120,14 +120,31 @@ class ImageManagementTester:
 
     def test_update_unit_image(self, unit_id, image_url):
         """Test updating a unit's image"""
-        success, response = self.run_test(
-            f"Update Unit Image for {unit_id}",
-            "PUT",
-            f"api/virtual-units/{unit_id}/image",
-            200,
-            params={"image_url": image_url}
-        )
-        return success, response
+        # The API expects image_url in the query string, not as a JSON body
+        url = f"{self.base_url}/api/virtual-units/{unit_id}/image?image_url={image_url}"
+        
+        self.tests_run += 1
+        print(f"\n🔍 Testing Update Unit Image for {unit_id}...")
+        
+        try:
+            response = requests.put(url)
+            success = response.status_code == 200
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                if response.text:
+                    try:
+                        return success, response.json()
+                    except json.JSONDecodeError:
+                        return success, response.text
+                return success, None
+            else:
+                print(f"❌ Failed - Expected 200, got {response.status_code}")
+                print(f"Response: {response.text}")
+                return False, None
+        except Exception as e:
+            print(f"❌ Failed - Error: {str(e)}")
+            return False, None
 
     def test_get_virtual_units(self):
         """Get all virtual units to use for testing"""
