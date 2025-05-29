@@ -1292,6 +1292,300 @@ async def send_email_notification(email: str, subject: str, template: str, data:
         if not result["success"]:
             logger.error(f"Email sending failed: {result['error']}")
 
+# Advanced CRM Routes
+
+@api_router.get("/customers", response_model=List[Customer])
+async def get_customers(
+    search: Optional[str] = None,
+    customer_type: Optional[str] = None,
+    loyalty_tier: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0
+):
+    """Get customers with filtering and search"""
+    query = {}
+    if customer_type:
+        query["customer_type"] = customer_type
+    if loyalty_tier:
+        query["loyalty_tier"] = loyalty_tier
+    
+    if search:
+        query["$or"] = [
+            {"first_name": {"$regex": search, "$options": "i"}},
+            {"last_name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}}
+        ]
+    
+    customers = await db.customers.find(query).skip(offset).limit(limit).to_list(limit)
+    return [Customer(**customer) for customer in customers]
+
+@api_router.post("/customers", response_model=Customer)
+async def create_customer(customer: Customer):
+    """Create a new customer"""
+    # Generate referral code
+    if not customer.referral_code:
+        customer.referral_code = f"REF{customer.first_name[:2].upper()}{customer.last_name[:2].upper()}{str(uuid.uuid4())[:6].upper()}"
+    
+    customer_dict = customer.dict()
+    await db.customers.insert_one(customer_dict)
+    return customer
+
+@api_router.get("/customers/{customer_id}", response_model=Customer)
+async def get_customer(customer_id: str):
+    """Get customer details"""
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return Customer(**customer)
+
+@api_router.put("/customers/{customer_id}", response_model=Customer)
+async def update_customer(customer_id: str, customer: Customer):
+    """Update customer information"""
+    customer.last_activity = datetime.utcnow()
+    result = await db.customers.replace_one({"id": customer_id}, customer.dict())
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return customer
+
+@api_router.get("/customers/{customer_id}/bookings")
+async def get_customer_bookings(customer_id: str):
+    """Get all bookings for a customer"""
+    bookings = await db.bookings.find({"customer_email": {"$exists": True}}).to_list(1000)
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    customer_bookings = [booking for booking in bookings if booking.get("customer_email") == customer["email"]]
+    return customer_bookings
+
+# Loyalty Program Routes
+
+@api_router.get("/loyalty/customer/{customer_id}")
+async def get_customer_loyalty(customer_id: str):
+    """Get customer loyalty information"""
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Get loyalty transactions
+    transactions = await db.loyalty_transactions.find({"customer_id": customer_id}).sort("created_at", -1).to_list(100)
+    
+    return {
+        "customer_id": customer_id,
+        "points": customer.get("loyalty_points", 0),
+        "tier": customer.get("loyalty_tier", "bronze"),
+        "lifetime_value": customer.get("lifetime_value", 0.0),
+        "transactions": transactions
+    }
+
+@api_router.post("/loyalty/award-points")
+async def award_loyalty_points(
+    customer_id: str,
+    points: int,
+    description: str,
+    booking_id: Optional[str] = None
+):
+    """Award loyalty points to a customer"""
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Create loyalty transaction
+    transaction = LoyaltyTransaction(
+        customer_id=customer_id,
+        transaction_type="earned",
+        points=points,
+        description=description,
+        booking_id=booking_id
+    )
+    await db.loyalty_transactions.insert_one(transaction.dict())
+    
+    # Update customer points and tier
+    new_points = customer.get("loyalty_points", 0) + points
+    new_tier = calculate_loyalty_tier(new_points)
+    
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {
+            "loyalty_points": new_points,
+            "loyalty_tier": new_tier,
+            "last_activity": datetime.utcnow()
+        }}
+    )
+    
+    return {"message": "Points awarded successfully", "new_points": new_points, "new_tier": new_tier}
+
+@api_router.post("/loyalty/redeem-points")
+async def redeem_loyalty_points(
+    customer_id: str,
+    points: int,
+    description: str
+):
+    """Redeem loyalty points"""
+    customer = await db.customers.find_one({"id": customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    current_points = customer.get("loyalty_points", 0)
+    if current_points < points:
+        raise HTTPException(status_code=400, detail="Insufficient points")
+    
+    # Create redemption transaction
+    transaction = LoyaltyTransaction(
+        customer_id=customer_id,
+        transaction_type="redeemed",
+        points=-points,
+        description=description
+    )
+    await db.loyalty_transactions.insert_one(transaction.dict())
+    
+    # Update customer points
+    new_points = current_points - points
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {
+            "loyalty_points": new_points,
+            "last_activity": datetime.utcnow()
+        }}
+    )
+    
+    return {"message": "Points redeemed successfully", "new_points": new_points}
+
+# Referral System Routes
+
+@api_router.post("/referrals/create")
+async def create_referral(referrer_id: str, referred_email: str):
+    """Create a new referral"""
+    referrer = await db.customers.find_one({"id": referrer_id})
+    if not referrer:
+        raise HTTPException(status_code=404, detail="Referrer not found")
+    
+    # Check if email already referred
+    existing = await db.referrals.find_one({"referred_email": referred_email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already referred")
+    
+    referral = Referral(
+        referrer_id=referrer_id,
+        referred_email=referred_email,
+        referrer_reward=500,  # 500 points for successful referral
+        referred_reward=250   # 250 points for new customer
+    )
+    
+    await db.referrals.insert_one(referral.dict())
+    return referral
+
+@api_router.get("/referrals/{referrer_id}")
+async def get_referrals(referrer_id: str):
+    """Get all referrals by a customer"""
+    referrals = await db.referrals.find({"referrer_id": referrer_id}).to_list(100)
+    return referrals
+
+# Location Management Routes
+
+@api_router.get("/locations", response_model=List[Location])
+async def get_locations(active_only: bool = True):
+    """Get all locations"""
+    query = {"is_active": True} if active_only else {}
+    locations = await db.locations.find(query).to_list(100)
+    return [Location(**location) for location in locations]
+
+@api_router.post("/locations", response_model=Location)
+async def create_location(location: Location):
+    """Create a new location"""
+    location_dict = location.dict()
+    await db.locations.insert_one(location_dict)
+    return location
+
+@api_router.put("/locations/{location_id}", response_model=Location)
+async def update_location(location_id: str, location: Location):
+    """Update location information"""
+    result = await db.locations.replace_one({"id": location_id}, location.dict())
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Location not found")
+    return location
+
+# Brand Settings Routes
+
+@api_router.get("/brand-settings")
+async def get_brand_settings(location_id: Optional[str] = None):
+    """Get brand settings for location or global"""
+    query = {"location_id": location_id} if location_id else {"location_id": None}
+    settings = await db.brand_settings.find_one(query)
+    if not settings:
+        # Return default settings
+        return BrandSettings().dict()
+    return settings
+
+@api_router.post("/brand-settings", response_model=BrandSettings)
+async def create_brand_settings(settings: BrandSettings):
+    """Create or update brand settings"""
+    settings.updated_at = datetime.utcnow()
+    
+    # Check if settings already exist for this location
+    existing = await db.brand_settings.find_one({
+        "location_id": settings.location_id
+    })
+    
+    if existing:
+        # Update existing
+        settings.id = existing["id"]
+        await db.brand_settings.replace_one({"id": existing["id"]}, settings.dict())
+    else:
+        # Create new
+        await db.brand_settings.insert_one(settings.dict())
+    
+    return settings
+
+# Push Notification Routes
+
+@api_router.post("/push/subscribe")
+async def subscribe_push(subscription: PushSubscription):
+    """Subscribe to push notifications"""
+    # Check if subscription already exists
+    existing = await db.push_subscriptions.find_one({"endpoint": subscription.endpoint})
+    if existing:
+        # Update existing subscription
+        await db.push_subscriptions.replace_one({"endpoint": subscription.endpoint}, subscription.dict())
+    else:
+        # Create new subscription
+        await db.push_subscriptions.insert_one(subscription.dict())
+    
+    return {"message": "Subscription saved successfully"}
+
+@api_router.post("/push/send")
+async def send_push_notification(
+    title: str,
+    body: str,
+    customer_id: Optional[str] = None,
+    url: Optional[str] = None
+):
+    """Send push notification"""
+    query = {}
+    if customer_id:
+        query["customer_id"] = customer_id
+    
+    subscriptions = await db.push_subscriptions.find(query).to_list(1000)
+    
+    # Here you would integrate with a push service like Firebase
+    # For now, we'll just log the attempt
+    logger.info(f"Would send push notification to {len(subscriptions)} subscribers: {title}")
+    
+    return {"message": f"Push notification queued for {len(subscriptions)} subscribers"}
+
+# Helper functions
+def calculate_loyalty_tier(points: int) -> str:
+    """Calculate loyalty tier based on points"""
+    if points >= 5000:
+        return "platinum"
+    elif points >= 2500:
+        return "gold"
+    elif points >= 1000:
+        return "silver"
+    else:
+        return "bronze"
+
 @api_router.post("/initialize-sample-data")
 async def initialize_sample_data():
     """Initialize the system with sample data"""
