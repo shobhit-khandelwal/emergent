@@ -252,18 +252,44 @@ Your storage is secure. Next payment due 1st of next month.
 Facility hours: 6AM-10PM daily. Need help? Call (555) 123-4567
         """.strip()
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
-# Initialize services (will be configured via API keys)
-stripe_service = StripeService()
-twilio_service = TwilioService()
-email_service = EmailService()
-
-# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Helper function to get configured services
+async def get_api_key(service: str, key_name: str) -> Optional[str]:
+    """Get API key from database"""
+    try:
+        api_key = await db.api_keys.find_one({
+            "service": service,
+            "key_name": key_name,
+            "is_active": True
+        })
+        return api_key["key_value"] if api_key else None
+    except:
+        return None
+
+async def configure_services():
+    """Configure services with API keys from database"""
+    global stripe_service, twilio_service, email_service
+    
+    # Configure Stripe
+    stripe_key = await get_api_key("stripe", "secret_key")
+    if stripe_key:
+        stripe_service = StripeService(stripe_key)
+    
+    # Configure Twilio
+    twilio_sid = await get_api_key("twilio", "account_sid")
+    twilio_token = await get_api_key("twilio", "auth_token")
+    twilio_number = await get_api_key("twilio", "from_number")
+    if twilio_sid and twilio_token and twilio_number:
+        twilio_service = TwilioService(twilio_sid, twilio_token, twilio_number)
+    
+    # Configure Email
+    email_key = await get_api_key("sendgrid", "api_key")
+    from_email = await get_api_key("sendgrid", "from_email")
+    if email_key and from_email:
+        email_service = EmailService(email_key, from_email)
 
 # Create the main app without a prefix
 app = FastAPI(title="RV & Boat Storage Management System", version="1.0.0")
