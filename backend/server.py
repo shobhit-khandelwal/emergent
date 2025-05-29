@@ -396,6 +396,132 @@ async def initialize_sample_data():
     await db.physical_units.delete_many({})
     await db.virtual_units.delete_many({})
     await db.bookings.delete_many({})
+    await db.image_assets.delete_many({})
+    
+    # Create sample image assets
+    image_assets = [
+        # Hero Images
+        ImageAsset(
+            name="RV Storage Facility Hero",
+            url="https://images.pexels.com/photos/13016664/pexels-photo-13016664.png",
+            category="hero",
+            tags=["rv", "storage", "facility", "outdoor"],
+            description="Main hero image showing RV storage facility"
+        ),
+        ImageAsset(
+            name="Boat Storage Hero",
+            url="https://images.unsplash.com/photo-1711130361680-a3beb1369ef5",
+            category="hero", 
+            tags=["boat", "storage", "outdoor", "facility"],
+            description="Hero image showing boat storage area"
+        ),
+        
+        # Unit Images - Enclosed Parking
+        ImageAsset(
+            name="Enclosed RV Parking",
+            url="https://images.pexels.com/photos/2797828/pexels-photo-2797828.jpeg",
+            category="unit",
+            tags=["enclosed", "parking", "rv", "covered"],
+            description="Enclosed parking space for RVs"
+        ),
+        ImageAsset(
+            name="Premium Enclosed Storage",
+            url="https://images.pexels.com/photos/13016664/pexels-photo-13016664.png",
+            category="unit",
+            tags=["enclosed", "premium", "storage", "climate"],
+            description="Premium enclosed storage with climate control"
+        ),
+        
+        # Unit Images - Self Storage
+        ImageAsset(
+            name="Climate Controlled Storage",
+            url="https://images.unsplash.com/photo-1551313158-73d016a829ae",
+            category="unit",
+            tags=["self_storage", "climate", "indoor", "boats"],
+            description="Climate controlled self storage for boats"
+        ),
+        ImageAsset(
+            name="Large Self Storage Unit",
+            url="https://images.unsplash.com/photo-1618438502398-195e47778d6c",
+            category="unit",
+            tags=["self_storage", "large", "boats", "equipment"],
+            description="Large self storage unit for boats and equipment"
+        ),
+        
+        # Unit Images - Covered Parking
+        ImageAsset(
+            name="Covered Parking Structure",
+            url="https://images.pexels.com/photos/13388790/pexels-photo-13388790.jpeg",
+            category="unit",
+            tags=["covered", "parking", "structure", "protection"],
+            description="Covered parking structure for weather protection"
+        ),
+        
+        # Unit Images - Outdoor Parking
+        ImageAsset(
+            name="Secure Outdoor Parking",
+            url="https://images.unsplash.com/photo-1600181914037-b14638c1137d",
+            category="unit",
+            tags=["outdoor", "parking", "secure", "open"],
+            description="Secure outdoor parking area"
+        ),
+        ImageAsset(
+            name="Large Outdoor Storage",
+            url="https://images.unsplash.com/photo-1711130361680-a3beb1369ef5",
+            category="unit",
+            tags=["outdoor", "large", "storage", "boats", "rvs"],
+            description="Large outdoor storage area for boats and RVs"
+        ),
+        
+        # Feature Images
+        ImageAsset(
+            name="Security Features",
+            url="https://images.unsplash.com/photo-1551313158-73d016a829ae",
+            category="feature",
+            tags=["security", "safe", "monitoring"],
+            description="Security and safety features"
+        ),
+        ImageAsset(
+            name="Flexible Storage Options",
+            url="https://images.pexels.com/photos/13388790/pexels-photo-13388790.jpeg",
+            category="feature",
+            tags=["flexible", "options", "variety"],
+            description="Various flexible storage options"
+        ),
+        ImageAsset(
+            name="Size Variety",
+            url="https://images.unsplash.com/photo-1711130361680-a3beb1369ef5",
+            category="feature",
+            tags=["sizes", "variety", "multiple"],
+            description="Multiple storage sizes available"
+        ),
+        
+        # Additional Gallery Images
+        ImageAsset(
+            name="RV Storage Row",
+            url="https://images.unsplash.com/photo-1664802915802-0ded0ff61e43",
+            category="gallery",
+            tags=["rv", "row", "multiple", "storage"],
+            description="Row of RV storage units"
+        ),
+        ImageAsset(
+            name="Boat Marina Storage",
+            url="https://images.unsplash.com/photo-1540946485063-a40da27545f8",
+            category="gallery", 
+            tags=["boat", "marina", "water", "storage"],
+            description="Boat storage at marina"
+        ),
+        ImageAsset(
+            name="Indoor Storage Facility",
+            url="https://images.unsplash.com/photo-1586023492125-27b2c045efd7",
+            category="gallery",
+            tags=["indoor", "facility", "warehouse", "storage"],
+            description="Indoor storage facility warehouse"
+        )
+    ]
+    
+    for image in image_assets:
+        await db.image_assets.insert_one(image.dict())
     
     # Create sample physical units
     physical_units = [
