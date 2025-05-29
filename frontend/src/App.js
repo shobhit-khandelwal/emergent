@@ -231,6 +231,15 @@ const UnitCard = ({ unit, onBook, pricingPeriod, onChangeImage }) => {
         <div className="unit-type-badge">
           {getUnitTypeLabel(unit.unit_type)}
         </div>
+        {onChangeImage && (
+          <button 
+            className="change-image-btn"
+            onClick={() => onChangeImage(unit)}
+            title="Change Image"
+          >
+            🖼️
+          </button>
+        )}
       </div>
       
       <div className="unit-content">
