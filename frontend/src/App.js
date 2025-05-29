@@ -614,11 +614,30 @@ function App() {
 
   return (
     <div className="App">
+      {/* Admin Toggle */}
+      <div className="admin-controls">
+        <button 
+          onClick={toggleAdminMode}
+          className={`admin-toggle ${adminMode ? 'active' : ''}`}
+        >
+          {adminMode ? '👨‍💼 Admin Mode ON' : '👤 User Mode'}
+        </button>
+        {adminMode && (
+          <button 
+            onClick={() => setShowImageManager(true)}
+            className="image-manager-btn"
+          >
+            🖼️ Manage Images
+          </button>
+        )}
+      </div>
+
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">
           <h1>Premium RV & Boat Storage</h1>
           <p>Secure, flexible storage solutions with multiple booking options</p>
+          {adminMode && <p className="admin-notice">🔧 Admin Mode: You can now change unit images</p>}
           <div className="hero-stats">
             <div className="stat">
               <span className="number">{virtualUnits.length}</span>
