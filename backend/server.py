@@ -2192,7 +2192,12 @@ async def initialize_sample_data():
         "virtual_units": len(virtual_units),
         "image_assets": len(image_assets),
         "content_blocks": len(content_blocks),
-        "promo_banners": len(promo_banners)
+        "promo_banners": len(promo_banners),
+        "locations": len(locations),
+        "customers": len(customers),
+        "loyalty_transactions": len(loyalty_transactions),
+        "referrals": len(referrals),
+        "brand_settings": 1
     }
 
 # Include the router in the main app
