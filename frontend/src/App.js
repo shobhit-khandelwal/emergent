@@ -1558,6 +1558,43 @@ function App() {
       setShowInstallPrompt(false);
     }
   };
+  const [pwaInstallPrompt, setPwaInstallPrompt] = useState(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  // PWA Installation
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setPwaInstallPrompt(e);
+      setShowInstallPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered: ', registration);
+        })
+        .catch((registrationError) => {
+          console.log('SW registration failed: ', registrationError);
+        });
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (pwaInstallPrompt) {
+      const result = await pwaInstallPrompt.prompt();
+      console.log('Install result:', result);
+      setPwaInstallPrompt(null);
+      setShowInstallPrompt(false);
+    }
+  };
 
   const initializeData = async () => {
     try {
