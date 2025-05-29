@@ -721,6 +721,16 @@ function App() {
         onSubmit={handleBookingSubmit}
       />
 
+      {/* Image Manager */}
+      <ImageManager
+        isOpen={showImageManager}
+        onClose={() => {
+          setShowImageManager(false);
+          setSelectedUnit(null);
+          fetchVirtualUnits(); // Refresh units after image changes
+        }}
+      />
+
       {/* Features Section */}
       <section className="features">
         <h2>Why Choose Our Storage?</h2>
