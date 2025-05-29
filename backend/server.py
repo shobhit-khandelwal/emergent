@@ -48,6 +48,15 @@ class PricingPeriod(str, Enum):
     MONTHLY = "monthly"
 
 # Models
+class ImageAsset(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    url: str
+    category: str  # hero, unit, feature, gallery
+    tags: List[str] = []  # rv, boat, storage, outdoor, enclosed, etc.
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 class PhysicalUnit(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     unit_number: str
