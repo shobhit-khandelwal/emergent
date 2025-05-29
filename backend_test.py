@@ -352,32 +352,20 @@ class StorageAPITester:
     
     def test_award_loyalty_points(self, customer_id, points=100, reason="API Testing"):
         """Test awarding loyalty points to a customer"""
-        data = {
-            "customer_id": customer_id,
-            "points": points,
-            "reason": reason
-        }
         return self.run_test(
             f"Award {points} Loyalty Points to Customer {customer_id}",
             "POST",
-            "loyalty/award-points",
-            200,
-            data=data
+            f"loyalty/award-points?customer_id={customer_id}&points={points}&description={reason}",
+            200
         )
     
     def test_redeem_loyalty_points(self, customer_id, points=50, reward="Test Reward"):
         """Test redeeming loyalty points for a customer"""
-        data = {
-            "customer_id": customer_id,
-            "points": points,
-            "reward": reward
-        }
         return self.run_test(
             f"Redeem {points} Loyalty Points for Customer {customer_id}",
             "POST",
-            "loyalty/redeem-points",
-            200,
-            data=data
+            f"loyalty/redeem-points?customer_id={customer_id}&points={points}&description={reward}",
+            200
         )
     
     # Tier 2B: Location Management Tests
