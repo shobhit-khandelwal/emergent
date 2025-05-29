@@ -1046,10 +1046,7 @@ body {
 }
 
 /* Change Image Button on Unit Cards */
-  z-index: 100;
-  display: flex;
-  gap: 10px;
-}
+.change-image-btn {
 
 .admin-toggle {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
