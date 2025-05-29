@@ -107,6 +107,39 @@ class FilterOptions(BaseModel):
     size_category: Optional[str] = None  # small, medium, large
     availability_date: Optional[datetime] = None
 
+class APIKey(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    service: str  # stripe, twilio, sendgrid
+    key_name: str  # secret_key, account_sid, auth_token, etc.
+    key_value: str
+    is_active: bool = True
+    environment: str = "test"  # test, production
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class NotificationSettings(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sms_enabled: bool = False
+    email_enabled: bool = False
+    payment_reminders_enabled: bool = True
+    promotional_campaigns_enabled: bool = True
+    booking_confirmations_enabled: bool = True
+    move_in_reminders_enabled: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PaymentTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    booking_id: str
+    stripe_session_id: Optional[str] = None
+    stripe_payment_intent_id: Optional[str] = None
+    amount: float
+    currency: str = "usd"
+    status: str = "pending"  # pending, completed, failed, refunded
+    payment_method: str = "stripe"
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 class ContentBlock(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     key: str  # e.g., "hero_title", "hero_subtitle", "feature_1_title"
