@@ -220,6 +220,8 @@ const AdminPortal = ({ isOpen, onClose }) => {
       fetchAnalytics();
       fetchContent();
       fetchBanners();
+      fetchIntegrationStatus();
+      fetchApiKeys();
     }
   }, [isOpen]);
 
