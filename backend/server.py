@@ -916,6 +916,275 @@ async def get_admin_analytics():
         }
     }
 
+# API Key Management Routes
+
+@api_router.get("/api-keys", response_model=List[Dict[str, Any]])
+async def get_api_keys():
+    """Get all API keys (values masked for security)"""
+    api_keys = await db.api_keys.find().to_list(1000)
+    # Mask sensitive values
+    for key in api_keys:
+        if len(key["key_value"]) > 8:
+            key["key_value"] = key["key_value"][:4] + "****" + key["key_value"][-4:]
+        else:
+            key["key_value"] = "****"
+    return api_keys
+
+@api_router.post("/api-keys", response_model=APIKey)
+async def create_api_key(api_key: APIKey):
+    """Create or update an API key"""
+    # Check if key already exists
+    existing = await db.api_keys.find_one({
+        "service": api_key.service,
+        "key_name": api_key.key_name
+    })
+    
+    if existing:
+        # Update existing key
+        api_key.id = existing["id"]
+        api_key.updated_at = datetime.utcnow()
+        await db.api_keys.replace_one({"id": existing["id"]}, api_key.dict())
+    else:
+        # Create new key
+        await db.api_keys.insert_one(api_key.dict())
+    
+    # Reconfigure services
+    await configure_services()
+    
+    return api_key
+
+@api_router.delete("/api-keys/{key_id}")
+async def delete_api_key(key_id: str):
+    """Delete an API key"""
+    result = await db.api_keys.delete_one({"id": key_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="API key not found")
+    
+    # Reconfigure services
+    await configure_services()
+    
+    return {"message": "API key deleted successfully"}
+
+@api_router.get("/integration-status")
+async def get_integration_status():
+    """Get status of all integrations"""
+    await configure_services()
+    
+    status = {
+        "stripe": {
+            "configured": stripe_service and hasattr(stripe, 'api_key') and stripe.api_key is not None,
+            "test_mode": True if stripe.api_key and stripe.api_key.startswith('sk_test_') else False
+        },
+        "twilio": {
+            "configured": twilio_service and twilio_service.client is not None,
+            "from_number": twilio_service.from_number if twilio_service and twilio_service.client else None
+        },
+        "sendgrid": {
+            "configured": email_service and email_service.sg is not None,
+            "from_email": email_service.from_email if email_service and email_service.sg else None
+        }
+    }
+    
+    return status
+
+# Payment Routes
+
+@api_router.post("/payments/create-checkout")
+async def create_payment_checkout(
+    booking_id: str,
+    amount: float,
+    origin_url: str
+):
+    """Create a Stripe checkout session for booking payment"""
+    await configure_services()
+    
+    if not stripe_service or not hasattr(stripe, 'api_key') or not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Payment processing not configured")
+    
+    # Create payment transaction record
+    transaction = PaymentTransaction(
+        booking_id=booking_id,
+        amount=amount,
+        status="pending"
+    )
+    await db.payment_transactions.insert_one(transaction.dict())
+    
+    # Create Stripe checkout session
+    success_url = f"{origin_url}/payment/success"
+    cancel_url = f"{origin_url}/payment/cancel"
+    
+    result = stripe_service.create_checkout_session(
+        amount=amount,
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={"booking_id": booking_id, "transaction_id": transaction.id}
+    )
+    
+    if result["success"]:
+        # Update transaction with session ID
+        await db.payment_transactions.update_one(
+            {"id": transaction.id},
+            {"$set": {"stripe_session_id": result["session_id"]}}
+        )
+        return {
+            "checkout_url": result["url"],
+            "session_id": result["session_id"],
+            "transaction_id": transaction.id
+        }
+    else:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+@api_router.get("/payments/status/{session_id}")
+async def get_payment_status(session_id: str):
+    """Check payment status"""
+    await configure_services()
+    
+    if not stripe_service:
+        raise HTTPException(status_code=503, detail="Payment processing not configured")
+    
+    result = stripe_service.get_payment_status(session_id)
+    
+    if result["success"]:
+        # Update transaction status if paid
+        if result["payment_status"] == "paid":
+            await db.payment_transactions.update_one(
+                {"stripe_session_id": session_id},
+                {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
+            )
+        
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["error"])
+
+# Notification Routes
+
+@api_router.post("/notifications/send-booking-confirmation")
+async def send_booking_confirmation(
+    booking_id: str,
+    background_tasks: BackgroundTasks
+):
+    """Send booking confirmation via SMS and Email"""
+    await configure_services()
+    
+    # Get booking details
+    booking = await db.bookings.find_one({"id": booking_id})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get virtual unit details
+    virtual_unit = await db.virtual_units.find_one({"id": booking["virtual_unit_id"]})
+    if not virtual_unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    
+    customer_data = {
+        "name": booking["customer_name"],
+        "email": booking["customer_email"],
+        "phone": booking["customer_phone"]
+    }
+    
+    booking_data = {
+        "unit_name": virtual_unit["display_name"],
+        "unit_size": virtual_unit["display_size"],
+        "amount": booking["total_price"],
+        "move_in_date": booking["move_in_date"].strftime("%B %d, %Y") if booking.get("move_in_date") else "TBD",
+        "booking_id": booking["id"]
+    }
+    
+    # Send SMS if configured and phone provided
+    if twilio_service and twilio_service.client and customer_data["phone"]:
+        background_tasks.add_task(
+            send_sms_notification,
+            customer_data["phone"],
+            SMSTemplates.booking_confirmation(
+                customer_data["name"],
+                booking_data["unit_name"],
+                booking_data["move_in_date"],
+                booking_data["amount"]
+            )
+        )
+    
+    # Send Email if configured and email provided
+    if email_service and email_service.sg and customer_data["email"]:
+        background_tasks.add_task(
+            send_email_notification,
+            customer_data["email"],
+            "🎉 Booking Confirmed - RV & Boat Storage",
+            EmailTemplates.BOOKING_CONFIRMATION,
+            {**customer_data, **booking_data, "manage_booking_url": "#"}
+        )
+    
+    return {"message": "Notifications queued for sending"}
+
+@api_router.post("/notifications/send-payment-confirmation")
+async def send_payment_confirmation(
+    transaction_id: str,
+    background_tasks: BackgroundTasks
+):
+    """Send payment confirmation via SMS and Email"""
+    await configure_services()
+    
+    # Get transaction and booking details
+    transaction = await db.payment_transactions.find_one({"id": transaction_id})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    booking = await db.bookings.find_one({"id": transaction["booking_id"]})
+    virtual_unit = await db.virtual_units.find_one({"id": booking["virtual_unit_id"]})
+    
+    customer_data = {
+        "name": booking["customer_name"],
+        "email": booking["customer_email"],
+        "phone": booking["customer_phone"]
+    }
+    
+    payment_data = {
+        "amount": transaction["amount"],
+        "payment_date": transaction["updated_at"].strftime("%B %d, %Y"),
+        "unit_name": virtual_unit["display_name"],
+        "transaction_id": transaction["id"][:8],
+        "next_due_date": "1st of next month"
+    }
+    
+    # Send SMS
+    if twilio_service and twilio_service.client and customer_data["phone"]:
+        background_tasks.add_task(
+            send_sms_notification,
+            customer_data["phone"],
+            SMSTemplates.payment_confirmation(
+                customer_data["name"],
+                payment_data["amount"],
+                payment_data["unit_name"]
+            )
+        )
+    
+    # Send Email
+    if email_service and email_service.sg and customer_data["email"]:
+        background_tasks.add_task(
+            send_email_notification,
+            customer_data["email"],
+            "✅ Payment Received - Thank You!",
+            EmailTemplates.PAYMENT_CONFIRMATION,
+            {**customer_data, **payment_data}
+        )
+    
+    return {"message": "Payment confirmation notifications sent"}
+
+# Helper functions for background tasks
+async def send_sms_notification(phone: str, message: str):
+    """Background task to send SMS"""
+    if twilio_service and twilio_service.client:
+        result = twilio_service.send_sms(phone, message)
+        if not result["success"]:
+            logger.error(f"SMS sending failed: {result['error']}")
+
+async def send_email_notification(email: str, subject: str, template: str, data: dict):
+    """Background task to send email"""
+    if email_service and email_service.sg:
+        html_content = Template(template).render(**data)
+        result = email_service.send_email(email, subject, html_content)
+        if not result["success"]:
+            logger.error(f"Email sending failed: {result['error']}")
+
 @api_router.post("/initialize-sample-data")
 async def initialize_sample_data():
     """Initialize the system with sample data"""
