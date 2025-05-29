@@ -254,6 +254,12 @@ const AdminPortal = ({ isOpen, onClose }) => {
           >
             🎯 Banners
           </button>
+          <button 
+            className={activeTab === 'integrations' ? 'active' : ''}
+            onClick={() => setActiveTab('integrations')}
+          >
+            🔗 Integrations
+          </button>
         </div>
 
         <div className="admin-content">
