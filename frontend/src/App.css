@@ -1075,10 +1075,7 @@ body {
 }
 
 /* Responsive Design */
-  border: none;
-  padding: 10px 15px;
-  border-radius: 20px;
-  font-weight: 600;
+@media (max-width: 768px) {
   cursor: pointer;
   transition: all 0.3s ease;
 }
