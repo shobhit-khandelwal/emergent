@@ -114,6 +114,24 @@ const AdminPortal = ({ isOpen, onClose }) => {
     }
   };
 
+  const fetchIntegrationStatus = async () => {
+    try {
+      const response = await axios.get(`${API}/integration-status`);
+      setIntegrationStatus(response.data);
+    } catch (err) {
+      console.error('Failed to fetch integration status:', err);
+    }
+  };
+
+  const fetchApiKeys = async () => {
+    try {
+      const response = await axios.get(`${API}/api-keys`);
+      setApiKeys(response.data);
+    } catch (err) {
+      console.error('Failed to fetch API keys:', err);
+    }
+  };
+
   const updateContent = async (key, newContent) => {
     try {
       await axios.put(`${API}/content/key/${key}`, { content: newContent });
