@@ -263,6 +263,18 @@ const AdminPortal = ({ isOpen, onClose }) => {
           >
             🔗 Integrations
           </button>
+          <button 
+            className={activeTab === 'crm' ? 'active' : ''}
+            onClick={() => setActiveTab('crm')}
+          >
+            👥 CRM
+          </button>
+          <button 
+            className={activeTab === 'locations' ? 'active' : ''}
+            onClick={() => setActiveTab('locations')}
+          >
+            🏢 Locations
+          </button>
         </div>
 
         <div className="admin-content">
