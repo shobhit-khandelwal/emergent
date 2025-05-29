@@ -195,6 +195,189 @@ const ImageManager = ({ isOpen, onClose }) => {
   );
 };
 
+const ImageManager = ({ isOpen, onClose }) => {
+  const [images, setImages] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newImage, setNewImage] = useState({
+    name: '',
+    url: '',
+    category: 'unit',
+    tags: '',
+    description: ''
+  });
+
+  const fetchImages = async () => {
+    try {
+      const params = selectedCategory !== 'all' ? `?category=${selectedCategory}` : '';
+      const response = await axios.get(`${API}/images${params}`);
+      setImages(response.data);
+    } catch (err) {
+      console.error('Failed to fetch images:', err);
+    }
+  };
+
+  const handleAddImage = async (e) => {
+    e.preventDefault();
+    try {
+      const imageData = {
+        ...newImage,
+        tags: newImage.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      };
+      await axios.post(`${API}/images`, imageData);
+      setNewImage({ name: '', url: '', category: 'unit', tags: '', description: '' });
+      setShowAddForm(false);
+      fetchImages();
+    } catch (err) {
+      alert('Failed to add image: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    if (window.confirm('Are you sure you want to delete this image?')) {
+      try {
+        await axios.delete(`${API}/images/${imageId}`);
+        fetchImages();
+      } catch (err) {
+        alert('Failed to delete image: ' + (err.response?.data?.detail || err.message));
+      }
+    }
+  };
+
+  const handleAssignToUnit = async (imageUrl, unitId) => {
+    try {
+      await axios.put(`${API}/virtual-units/${unitId}/image?image_url=${encodeURIComponent(imageUrl)}`);
+      alert('Image assigned to unit successfully!');
+      onClose(); // Close the image manager to refresh the main view
+    } catch (err) {
+      alert('Failed to assign image: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchImages();
+    }
+  }, [isOpen, selectedCategory]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="image-manager-modal">
+        <div className="image-manager-header">
+          <h2>Image Management</h2>
+          <div className="header-controls">
+            <select 
+              value={selectedCategory} 
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="category-filter"
+            >
+              <option value="all">All Categories</option>
+              <option value="hero">Hero Images</option>
+              <option value="unit">Unit Images</option>
+              <option value="feature">Feature Images</option>
+              <option value="gallery">Gallery Images</option>
+            </select>
+            <button 
+              onClick={() => setShowAddForm(true)}
+              className="add-image-btn"
+            >
+              Add New Image
+            </button>
+            <button onClick={onClose} className="close-btn">×</button>
+          </div>
+        </div>
+
+        {showAddForm && (
+          <div className="add-image-form">
+            <h3>Add New Image</h3>
+            <form onSubmit={handleAddImage}>
+              <div className="form-row">
+                <input
+                  type="text"
+                  placeholder="Image Name"
+                  value={newImage.name}
+                  onChange={(e) => setNewImage({...newImage, name: e.target.value})}
+                  required
+                />
+                <select
+                  value={newImage.category}
+                  onChange={(e) => setNewImage({...newImage, category: e.target.value})}
+                >
+                  <option value="unit">Unit Image</option>
+                  <option value="hero">Hero Image</option>
+                  <option value="feature">Feature Image</option>
+                  <option value="gallery">Gallery Image</option>
+                </select>
+              </div>
+              <input
+                type="url"
+                placeholder="Image URL"
+                value={newImage.url}
+                onChange={(e) => setNewImage({...newImage, url: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Tags (comma separated)"
+                value={newImage.tags}
+                onChange={(e) => setNewImage({...newImage, tags: e.target.value})}
+              />
+              <textarea
+                placeholder="Description"
+                value={newImage.description}
+                onChange={(e) => setNewImage({...newImage, description: e.target.value})}
+              />
+              <div className="form-actions">
+                <button type="submit">Add Image</button>
+                <button type="button" onClick={() => setShowAddForm(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        <div className="images-grid">
+          {images.map(image => (
+            <div key={image.id} className="image-item">
+              <div className="image-preview">
+                <img src={image.url} alt={image.name} />
+                <div className="image-overlay">
+                  <button 
+                    onClick={() => handleDeleteImage(image.id)}
+                    className="delete-btn"
+                  >
+                    🗑️
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const unitId = prompt('Enter Virtual Unit ID to assign this image:');
+                      if (unitId) handleAssignToUnit(image.url, unitId);
+                    }}
+                    className="assign-btn"
+                  >
+                    📎
+                  </button>
+                </div>
+              </div>
+              <div className="image-info">
+                <h4>{image.name}</h4>
+                <span className="category-badge">{image.category}</span>
+                <div className="tags">
+                  {image.tags.map(tag => (
+                    <span key={tag} className="tag">{tag}</span>
+                  ))}
+                </div>
+                <p className="description">{image.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UnitCard = ({ unit, onBook, pricingPeriod, onChangeImage }) => {
   const getPrice = () => {
     switch (pricingPeriod) {
