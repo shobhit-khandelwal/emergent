@@ -1197,6 +1197,8 @@ async def initialize_sample_data():
     await db.content_blocks.delete_many({})
     await db.promo_banners.delete_many({})
     await db.funnel_events.delete_many({})
+    await db.api_keys.delete_many({})
+    await db.payment_transactions.delete_many({})
     
     # Create sample content blocks
     content_blocks = [
